@@ -8,13 +8,13 @@ Design document: `docs/design/design.pdf`
 * Wrote the room contents, clues and uncanny details for all 18 rooms
 * Designed the ASCII art display and day based art erosion (AsciiArtLibrary, IDisplay, ConsoleDisplay)
 
-### Team Member 2
+### Zeynep Camgoz
 * Designed the Character hierarchy (Player, NPC, HelperNPC, HostileNPC)
 * Designed Inventory, the Item hierarchy and the IUsable interface
 * Designed the random event system (EventScheduler, IRandom, IRandomEvent and the ten events)
 * Drew the UML class diagrams
 
-### Team Member 3
+### Heather-May Howse
 * Designed the Command hierarchy (including Sleep and Fight), CommandRegistry and CommandParser
 * Designed GameState, GameEndChecker and the ILoseCondition classes
 * Wrote the method description table
