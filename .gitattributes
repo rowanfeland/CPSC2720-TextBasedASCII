@@ -1,0 +1,3 @@
+# make in WSL breaks on CRLF recipes, so keep the Makefile LF on every checkout.
+# GitHub-only helper: don't copy into the GitLab course repo.
+Makefile.local text eol=lf
