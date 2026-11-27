@@ -16,3 +16,5 @@ void ConsoleDisplay::show(const std::string& text) { out_ << text << '\n'; }
 void ConsoleDisplay::showArt(const std::string& art) { out_ << art; }
 
 void ConsoleDisplay::clear() { out_ << kClearScreen; }
+
+void ConsoleDisplay::prompt(const std::string& text) { out_ << text << std::flush; }

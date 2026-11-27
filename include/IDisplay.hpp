@@ -20,6 +20,9 @@ class IDisplay {
 
   /** @brief Clears the screen before the next frame. */
   virtual void clear() = 0;
+
+  /** @brief Shows the input prompt on the current line, without a newline. */
+  virtual void prompt(const std::string& text) = 0;
 };
 
 #endif  // IDISPLAY_HPP_INCLUDED

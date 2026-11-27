@@ -25,6 +25,9 @@ class ConsoleDisplay : public IDisplay {
   /** @brief Writes the ANSI clear-screen and cursor-home codes. */
   void clear() override;
 
+  /** @brief Writes the prompt and flushes, so the cursor waits on the same line. */
+  void prompt(const std::string& text) override;
+
  private:
   std::ostream& out_;
 };

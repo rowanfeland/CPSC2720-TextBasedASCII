@@ -5,6 +5,13 @@
 #include "ConsoleDisplay.hpp"
 #include "ConsoleInput.hpp"
 
+TEST(ConsoleDisplayTest, PromptNoNewline) {
+  std::ostringstream out;
+  ConsoleDisplay display(out);
+  display.prompt("> ");
+  EXPECT_EQ("> ", out.str());
+}
+
 TEST(ConsoleDisplayTest, ShowAddsNewline) {
   std::ostringstream out;
   ConsoleDisplay display(out);
