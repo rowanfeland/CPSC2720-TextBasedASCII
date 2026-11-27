@@ -122,6 +122,10 @@ void WorldMap::addSprite(const std::string& name, const Sprite& s) {
   sprites_[name] = s;
 }
 
+void WorldMap::setSky(const SkyModel& sky) { sky_ = sky; }
+
+const SkyModel& WorldMap::sky() const { return sky_; }
+
 const Sprite* WorldMap::sprite(const std::string& name) const {
   const std::map<std::string, Sprite>::const_iterator it = sprites_.find(name);
   return it == sprites_.end() ? nullptr : &it->second;

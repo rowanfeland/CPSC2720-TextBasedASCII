@@ -348,6 +348,12 @@ WorldMap loadWorld(const std::string& dir, std::ostream& warn) {
     warn << "Missing " << dir << "/props.txt\n";
   }
   loadSprites(dir + "/sprites", map, warn);
+  SkyModel sky;
+  if (sky.load(dir + "/sky.txt", warn)) {
+    map.setSky(sky);
+  } else {
+    warn << "Missing " << dir << "/sky.txt\n";
+  }
   return map;
 }
 

@@ -9,6 +9,7 @@ namespace {
 const double kTwoPi = 6.283185307179586;
 const double kFieldOfView = 0.66;  // camera plane length; about 66 degrees
 const double kRadius = 0.2;        // space kept clear around the player
+const double kMinMove = 1e-6;      // smaller moves are rounding, not steps
 
 }  // namespace
 
@@ -52,16 +53,15 @@ bool Camera::fits(const WorldMap& map, double x, double y) const {
 }
 
 bool Camera::step(const WorldMap& map, double distance) {
+  const double startX = x_;
+  const double startY = y_;
   const double nx = x_ + dirX() * distance;
   const double ny = y_ + dirY() * distance;
-  bool moved = false;
   if (fits(map, nx, y_)) {
-    moved = moved || nx != x_;
     x_ = nx;
   }
   if (fits(map, x_, ny)) {
-    moved = moved || ny != y_;
     y_ = ny;
   }
-  return moved;
+  return std::hypot(x_ - startX, y_ - startY) > kMinMove;
 }

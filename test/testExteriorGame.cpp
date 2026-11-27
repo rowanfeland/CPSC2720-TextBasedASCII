@@ -240,6 +240,42 @@ TEST(ExteriorGameTest, MountNeedsHorseNearby) {
   EXPECT_TRUE(again->horse().isMounted());
 }
 
+TEST(ExteriorGameTest, TimePassesWhenYouAct) {
+  Harness h;
+  ExteriorGame* g = h.play(join({Key(KeyType::Up), Key(KeyType::Left)}, typed("look")));
+  EXPECT_EQ("17:32", g->clock().format());  // step 2, turn and look free
+  Harness w;
+  ExteriorGame* waited = w.play(typed("wait"));
+  EXPECT_EQ("18:30", waited->clock().format());
+  EXPECT_NE(std::string::npos, w.screen.all().find("18:30"));
+  Harness d;
+  ExteriorGame* dismounted = d.play(typed("dismount"));
+  EXPECT_EQ("17:35", dismounted->clock().format());
+}
+
+TEST(ExteriorGameTest, BlockedStepCostsNothing) {
+  Harness h;
+  // Turn to face the open desert edge east and walk until blocked by the map edge.
+  std::vector<Key> keys = repeat(KeyType::Right, 12);  // 180 degrees: face east
+  keys = join(keys, repeat(KeyType::Up, 3));           // reach the edge
+  ExteriorGame* g = h.play(keys);
+  const std::string after = g->clock().format();
+  Harness again;
+  keys = join(keys, repeat(KeyType::Up, 5));           // bump the edge
+  EXPECT_EQ(after, again.play(keys)->clock().format());
+}
+
+TEST(ExteriorGameTest, WaitingPastMidnightAdvancesDay) {
+  Harness h;
+  std::vector<Key> keys;
+  for (int i = 0; i < 7; ++i) {
+    keys = join(keys, typed("wait"));
+  }
+  ExteriorGame* g = h.play(keys);
+  EXPECT_EQ("00:30", g->clock().format());
+  EXPECT_EQ(2, h.state.getDay());
+}
+
 TEST(ExteriorGameTest, LongInputIsCapped) {
   Harness h;
   ExteriorGame* g = h.play(std::vector<Key>(200, Key(KeyType::Char, 'a')));

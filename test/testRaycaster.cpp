@@ -9,6 +9,7 @@
 #include "FrameBuffer.hpp"
 #include "Raycaster.hpp"
 #include "Rgb.hpp"
+#include "SkyModel.hpp"
 #include "Sprite.hpp"
 #include "WallTextures.hpp"
 #include "WorldFiles.hpp"
@@ -251,6 +252,29 @@ TEST(RaycasterTest, RidingOverlayAtBottom) {
   renderView(in, riding, depth);
   EXPECT_FALSE(foot.get(40, 39) == riding.get(40, 39));
   EXPECT_TRUE(foot.get(2, 2) == riding.get(2, 2));
+}
+
+TEST(RaycasterTest, NightHasStarsAndLitWindows) {
+  std::ostringstream warn;
+  WorldMap map = loadWorld("data/world", warn);
+  // On Main Street facing the north row of buildings.
+  RenderInput in(map, Camera(20.0, 18.0, -kPi * 0.70));
+  SkyModel sky;
+  in.sky = sky.sample(1 * 60);
+  FrameBuffer fb(160, 80);
+  std::vector<double> depth;
+  renderView(in, fb, depth);
+  int lamps = 0;
+  int stars = 0;
+  for (int y = 0; y < 80; ++y) {
+    for (int x = 0; x < 160; ++x) {
+      const Rgb c = fb.get(x, y);
+      lamps += (c.r > 200 && c.g > 150 && c.b < 160) ? 1 : 0;
+      stars += (y < 20 && c.r > 150 && c.g > 150 && c.b > 150) ? 1 : 0;
+    }
+  }
+  EXPECT_GT(lamps, 5);
+  EXPECT_GT(stars, 0);
 }
 
 TEST(WallTexturesTest, DoorAndWindowOnFacade) {

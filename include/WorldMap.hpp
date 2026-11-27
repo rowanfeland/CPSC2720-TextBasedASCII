@@ -11,6 +11,7 @@
 
 #include "Geometry.hpp"
 #include "Rgb.hpp"
+#include "SkyModel.hpp"
 #include "Sprite.hpp"
 
 /** @brief What the ground looks like on a tile. */
@@ -123,6 +124,12 @@ class WorldMap {
   /** @brief The sprite with this name, or nullptr. */
   const Sprite* sprite(const std::string& name) const;
 
+  /** @brief Replaces the sky keyframes. */
+  void setSky(const SkyModel& sky);
+
+  /** @brief Sky colours and light through the day. */
+  const SkyModel& sky() const;
+
  private:
   std::vector<std::string> rows_;
   int width_;
@@ -132,6 +139,7 @@ class WorldMap {
   std::vector<Zone> zones_;
   std::vector<Prop> props_;
   std::map<std::string, Sprite> sprites_;
+  SkyModel sky_;
 };
 
 #endif  // WORLDMAP_HPP_INCLUDED

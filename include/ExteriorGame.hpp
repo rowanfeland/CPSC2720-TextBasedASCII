@@ -12,6 +12,7 @@
 #include "Camera.hpp"
 #include "CommandRegistry.hpp"
 #include "FrameBuffer.hpp"
+#include "GameClock.hpp"
 #include "GameState.hpp"
 #include "Horse.hpp"
 #include "IKeyInput.hpp"
@@ -68,6 +69,9 @@ class ExteriorGame {
   /** @brief The player's horse. */
   const Horse& horse() const;
 
+  /** @brief The time of day. */
+  const GameClock& clock() const;
+
   /** @brief What has been typed so far. */
   const std::string& inputLine() const;
 
@@ -76,6 +80,7 @@ class ExteriorGame {
 
  private:
   void walk(double direction);
+  void passTime(int minutes);
   void updateRoom();
   std::string describeHere() const;
   std::string statusLine() const;
@@ -91,6 +96,7 @@ class ExteriorGame {
   bool plain_;
   Camera camera_;
   Horse horse_;
+  GameClock clock_;
   std::string input_;
   std::string message_;
   FrameBuffer previous_;

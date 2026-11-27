@@ -22,8 +22,8 @@ const double kPi = 3.14159265358979323846;
 const char kTooSmall[] = "Make the terminal bigger (80 x 24 or more).";
 const char kHelp[] =
     "Arrow keys walk and turn. Type a command, then press Enter.\n"
-    "Commands: look, look <thing>, mount, dismount, take, drop, inventory, "
-    "help, quit";
+    "Commands: look, look <thing>, mount, dismount, wait, take, drop, "
+    "inventory, help, quit";
 
 std::string upper(const std::string& s) {
   std::string out = s;
@@ -146,12 +146,20 @@ std::string ExteriorGame::runCommand(const std::string& line) {
     return "Use the arrow keys to walk.";
   }
   const std::string first = CommandParser::parse(typed).verb;
-  if (first == "mount" || first == "ride") {
-    return horse_.mount(Point2(camera_.x(), camera_.y()));
+  if (first == "wait") {
+    passTime(kWaitMinutes);
+    return "You wait. Time passes.";
   }
-  if (first == "dismount") {
-    return horse_.dismount(map_, Point2(camera_.x(), camera_.y()),
-                           camera_.angle());
+  if (first == "mount" || first == "ride" || first == "dismount") {
+    const bool wasMounted = horse_.isMounted();
+    const Point2 here(camera_.x(), camera_.y());
+    const std::string result =
+        first == "dismount" ? horse_.dismount(map_, here, camera_.angle())
+                            : horse_.mount(here);
+    if (horse_.isMounted() != wasMounted) {
+      passTime(kActionMinutes);
+    }
+    return result;
   }
   if (cmd.verb == "quit") {
     state_.requestQuit();
@@ -161,7 +169,12 @@ std::string ExteriorGame::runCommand(const std::string& line) {
   if (command == nullptr) {
     return "I don't understand \"" + typed + "\". Type help.";
   }
-  return command->execute(cmd, player_, state_);
+  const std::string result = command->execute(cmd, player_, state_);
+  if (result.compare(0, 6, "Taken:") == 0 ||
+      result.compare(0, 8, "Dropped:") == 0) {
+    passTime(kActionMinutes);
+  }
+  return result;
 }
 
 void ExteriorGame::draw() {
@@ -179,6 +192,7 @@ void ExteriorGame::draw() {
   in.riding = horse_.isMounted();
   in.showHorse = !horse_.isMounted();
   in.horse = horse_.position();
+  in.sky = map_.sky().sample(clock_.minutes());
   renderView(in, frame, depth_);
   std::string out;
   if (plain_) {
@@ -195,10 +209,19 @@ const Camera& ExteriorGame::camera() const { return camera_; }
 
 const Horse& ExteriorGame::horse() const { return horse_; }
 
+const GameClock& ExteriorGame::clock() const { return clock_; }
+
 void ExteriorGame::walk(double direction) {
-  camera_.step(map_, direction * kWalkStep * horse_.speedFactor());
+  if (camera_.step(map_, direction * kWalkStep * horse_.speedFactor())) {
+    passTime(kStepMinutes);
+  }
   horse_.follow(Point2(camera_.x(), camera_.y()));
   updateRoom();
+}
+
+void ExteriorGame::passTime(int minutes) {
+  const int midnights = clock_.advance(minutes);
+  state_.setDay(state_.getDay() + midnights);
 }
 
 const std::string& ExteriorGame::inputLine() const { return input_; }
@@ -229,7 +252,8 @@ std::string ExteriorGame::statusLine() const {
     const Room* room = world_.getRoom(zone->roomId);
     place = upper(room != nullptr ? room->getName() : zone->roomId);
   }
-  return place + (horse_.isMounted() ? "   riding" : "   on foot");
+  return place + "   " + clock_.format() +
+         (horse_.isMounted() ? "   riding" : "   on foot");
 }
 
 std::string ExteriorGame::textArea(int cols, int rows) const {
