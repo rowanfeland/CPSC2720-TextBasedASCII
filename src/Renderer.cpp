@@ -8,12 +8,8 @@ namespace {
 const char kRoadGlyph = '=';
 const char kDoorGlyph = 'D';
 
-}  // namespace
-
-Renderer::Renderer(const AsciiArtLibrary& art, Viewport& viewport)
-    : art_(art), viewport_(viewport) {}
-
-void Renderer::drawGround(Canvas& world, const SceneMap& map) const {
+/** Fills every cell with open ground, or road on road rows. */
+void drawGround(Canvas& world, const SceneMap& map) {
   for (int y = 0; y < map.height(); ++y) {
     const char c = map.isRoad(y) ? kRoadGlyph : map.ground();
     for (int x = 0; x < map.width(); ++x) {
@@ -21,6 +17,11 @@ void Renderer::drawGround(Canvas& world, const SceneMap& map) const {
     }
   }
 }
+
+}  // namespace
+
+Renderer::Renderer(const AsciiArtLibrary& art, Viewport& viewport)
+    : art_(art), viewport_(viewport) {}
 
 void Renderer::drawBuilding(Canvas& world, const Building& building) const {
   const Rect& r = building.footprint;

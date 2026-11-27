@@ -43,7 +43,6 @@ class Renderer {
                           const Point& focus, const std::string& status);
 
  private:
-  void drawGround(Canvas& world, const SceneMap& map) const;
   void drawBuilding(Canvas& world, const Building& building) const;
 
   const AsciiArtLibrary& art_;

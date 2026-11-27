@@ -38,7 +38,8 @@ bool AsciiArtLibrary::loadFromDirectory(const std::string& path) {
     return false;
   }
   const std::string extension(kArtExtension);
-  for (dirent* entry = readdir(dir); entry != nullptr; entry = readdir(dir)) {
+  for (const dirent* entry = readdir(dir); entry != nullptr;
+       entry = readdir(dir)) {
     const std::string name(entry->d_name);
     if (endsWith(name, extension)) {
       const std::string key = name.substr(0, name.size() - extension.size());

@@ -13,7 +13,7 @@ struct Point {
   int y;  ///< Row.
 
   /** @brief Creates a point at (x, y). */
-  Point(int px = 0, int py = 0) : x(px), y(py) {}
+  explicit Point(int px = 0, int py = 0) : x(px), y(py) {}
 
   /** @brief True when both coordinates match. */
   bool operator==(const Point& other) const {
@@ -34,7 +34,7 @@ struct Rect {
   int height;  ///< Number of rows.
 
   /** @brief Creates a rectangle. */
-  Rect(int rx = 0, int ry = 0, int w = 0, int h = 0)
+  explicit Rect(int rx = 0, int ry = 0, int w = 0, int h = 0)
       : x(rx), y(ry), width(w), height(h) {}
 
   /** @brief True when the cell lies inside the rectangle. */
