@@ -118,10 +118,10 @@ src/            implementation files
 src/project/    main.cpp
 test/           unit tests
 data/art/       ASCII art, one .txt file per scene
-docs/design/    design.pdf (UML class diagrams and method descriptions)
+Docs/Design/    Design_Report_GroupF.pdf (UML class diagrams and method descriptions)
 ```
 
-The design is built around SOLID principles and polymorphism. There's an abstract `Room` with five room types, plus abstract `Item`, `NPC`, `Command` and `IRandomEvent` hierarchies. Interfaces for input, output and random numbers make the core game logic fully unit testable. The full design is in [`docs/design/design.pdf`](docs/design/design.pdf).
+The design is built around SOLID principles and polymorphism. There's an abstract `Room` with five room types, plus abstract `Item`, `NPC`, `Command` and `IRandomEvent` hierarchies. Interfaces for input, output and random numbers make the core game logic fully unit testable. The full design is in [`Docs/Design/Design_Report_GroupF.pdf`](Docs/Design/Design_Report_GroupF.pdf).
 
 ---
 
