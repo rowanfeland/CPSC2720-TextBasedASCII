@@ -1,0 +1,52 @@
+# Stand-in for the course Makefile while we work in this GitHub repo.
+# Do NOT copy this file into the GitLab course repo: it has its own Makefile,
+# and only include/, src/, data/, test/, .gitignore and README.md may change.
+#
+# Needs (WSL Ubuntu):  sudo apt install -y g++ make libgtest-dev valgrind lcov cppcheck
+# Run from the repo root inside WSL:  make -f Makefile.local <target>
+# Targets: playGame, testGame, run-tests, memcheck, coverage, static, clean
+
+CXX      = g++
+# Game code must stay C++11-clean (playGame enforces it); the installed
+# GoogleTest needs C++17, so only the test build uses it.
+CXXFLAGS = -std=c++11 -Wall -Wextra -g -Iinclude
+TESTFLAGS = -std=c++17 -Wall -Wextra -g -Iinclude
+LIBS     = -lgtest -lpthread
+
+SRC       = $(wildcard src/*.cpp)
+TEST_SRC  = $(wildcard test/*.cpp)
+MAIN_SRC  = src/project/main.cpp
+HEADERS   = $(wildcard include/*.hpp)
+
+.PHONY: all clean memcheck coverage static run-tests
+
+all: playGame testGame
+
+playGame: $(SRC) $(MAIN_SRC) $(HEADERS)
+	$(CXX) $(CXXFLAGS) -o $@ $(SRC) $(MAIN_SRC)
+
+testGame: $(SRC) $(TEST_SRC) $(HEADERS)
+	$(CXX) $(TESTFLAGS) -o $@ $(SRC) $(TEST_SRC) $(LIBS)
+
+memcheck: testGame
+	valgrind --leak-check=full --error-exitcode=1 ./testGame
+
+coverage:
+	rm -rf coverage coverage.info *.gcda *.gcno
+	$(CXX) $(TESTFLAGS) --coverage -O0 -o testGame $(SRC) $(TEST_SRC) $(LIBS)
+	./testGame
+	lcov --capture --directory . --output-file coverage.info --ignore-errors mismatch,inconsistent >/dev/null
+	lcov --extract coverage.info "$(CURDIR)/src/*" --output-file coverage.info --ignore-errors unused >/dev/null
+	lcov --remove coverage.info "$(CURDIR)/src/project/*" --output-file coverage.info --ignore-errors unused >/dev/null
+	lcov --list coverage.info
+	lcov --summary coverage.info
+
+static:
+	cppcheck --enable=all --suppress=missingIncludeSystem --suppress=unusedFunction --inline-suppr --error-exitcode=1 -Iinclude include src
+
+clean:
+	rm -rf playGame testGame coverage coverage.info *.gcda *.gcno *.gcov
+
+# Local convenience: build and run the unit tests
+run-tests: testGame
+	./testGame

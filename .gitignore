@@ -1,9 +1,6 @@
 # Planning handoffs (kept local, not part of the submission)
 Docs/Design/the-line-playable-town-build-plan.md
 
-# Local stand-in for the course Makefile
-Makefile.local
-
 # Build output
 playGame
 testGame
