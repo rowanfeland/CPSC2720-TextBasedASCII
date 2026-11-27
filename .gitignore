@@ -10,3 +10,6 @@ testGame
 *.gcov
 coverage/
 coverage.info
+
+# Local plan-execution scratch
+.superpowers/
