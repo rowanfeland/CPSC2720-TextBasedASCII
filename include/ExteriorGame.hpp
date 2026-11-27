@@ -13,6 +13,7 @@
 #include "CommandRegistry.hpp"
 #include "FrameBuffer.hpp"
 #include "GameState.hpp"
+#include "Horse.hpp"
 #include "IKeyInput.hpp"
 #include "IScreen.hpp"
 #include "Key.hpp"
@@ -64,6 +65,9 @@ class ExteriorGame {
   /** @brief The player's eye. */
   const Camera& camera() const;
 
+  /** @brief The player's horse. */
+  const Horse& horse() const;
+
   /** @brief What has been typed so far. */
   const std::string& inputLine() const;
 
@@ -71,6 +75,7 @@ class ExteriorGame {
   const std::string& lastMessage() const;
 
  private:
+  void walk(double direction);
   void updateRoom();
   std::string describeHere() const;
   std::string statusLine() const;
@@ -85,6 +90,7 @@ class ExteriorGame {
   IScreen& screen_;
   bool plain_;
   Camera camera_;
+  Horse horse_;
   std::string input_;
   std::string message_;
   FrameBuffer previous_;

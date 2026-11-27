@@ -33,7 +33,14 @@ int parseBuildings(const std::string& text, WorldMap& map, std::ostream& warn);
 int parseZones(const std::string& text, WorldMap& map, std::ostream& warn);
 
 /**
- * @brief Loads town.map, buildings.txt and zones.txt from a folder.
+ * @brief Reads props.txt ("sprite x y yes|no" per line) and adds each prop.
+ * @return Number of props added. Bad lines are reported on warn.
+ */
+int parseProps(const std::string& text, WorldMap& map, std::ostream& warn);
+
+/**
+ * @brief Loads town.map, buildings.txt, zones.txt, props.txt and every .txt
+ * file in the sprites folder.
  * Falls back to defaultWorld() (with a warning naming the folder) if
  * town.map is missing or empty.
  */

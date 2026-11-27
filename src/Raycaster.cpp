@@ -7,6 +7,7 @@
 #include "Camera.hpp"
 #include "FrameBuffer.hpp"
 #include "Rgb.hpp"
+#include "Sprite.hpp"
 #include "WallTextures.hpp"
 #include "WorldMap.hpp"
 
@@ -246,6 +247,101 @@ void drawWallColumn(const RenderInput& in, FrameBuffer& f,
   }
 }
 
+void drawBillboard(const RenderInput& in, FrameBuffer& f,
+                   std::vector<double>& depth, const Sprite& sprite,
+                   const Point2& at, double horizon, double focal) {
+  const Camera& cam = in.cam;
+  const double sx = at.x - cam.x();
+  const double sy = at.y - cam.y();
+  const double inv =
+      1.0 / (cam.planeX() * cam.dirY() - cam.dirX() * cam.planeY());
+  const double tx = inv * (cam.dirY() * sx - cam.dirX() * sy);
+  const double ty = inv * (-cam.planeY() * sx + cam.planeX() * sy);
+  if (ty <= 0.1 || sprite.columns() == 0) {
+    return;
+  }
+  const int w = f.width();
+  const double scaleBy = focal / ty;
+  const double sw = sprite.width * scaleBy;
+  const double sh = sprite.height * scaleBy;
+  const double bottom = horizon + in.eyeHeight * scaleBy;
+  const double top = bottom - sh;
+  const double left = w / 2.0 * (1 + tx / ty) - sw / 2;
+  const double fog = fogAmount(ty);
+  const int x0 = std::max(0, static_cast<int>(std::floor(left)));
+  const int x1 = std::min(w, static_cast<int>(std::ceil(left + sw)));
+  const int y0 = std::max(0, static_cast<int>(std::floor(top)));
+  const int y1 = std::min(f.height(), static_cast<int>(std::ceil(bottom)));
+  for (int x = x0; x < x1; ++x) {
+    const int col = static_cast<int>((x + 0.5 - left) / sw * sprite.columns());
+    for (int y = y0; y < y1; ++y) {
+      const std::vector<double>::size_type at2 =
+          static_cast<std::vector<double>::size_type>(y) * w + x;
+      if (depth[at2] <= ty) {
+        continue;
+      }
+      const int row = static_cast<int>((y + 0.5 - top) / sh * sprite.rowCount());
+      Rgb c;
+      if (sprite.pixel(col, row, c)) {
+        f.set(x, y, mix(scale(c, in.sky.light), in.sky.horizon, fog));
+        depth[at2] = ty;
+      }
+    }
+  }
+}
+
+void drawSprites(const RenderInput& in, FrameBuffer& f,
+                 std::vector<double>& depth, double horizon, double focal) {
+  const std::vector<Prop>& props = in.map->props();
+  for (std::vector<Prop>::size_type i = 0; i < props.size(); ++i) {
+    const Sprite* s = in.map->sprite(props[i].sprite);
+    if (s != nullptr) {
+      drawBillboard(in, f, depth, *s, props[i].pos, horizon, focal);
+    }
+  }
+  const Sprite* horse = in.map->sprite("horse");
+  if (in.showHorse && horse != nullptr) {
+    drawBillboard(in, f, depth, *horse, in.horse, horizon, focal);
+  }
+}
+
+/** Ears, mane, neck and reins of the horse you are riding. */
+void drawRidingOverlay(const RenderInput& in, FrameBuffer& f) {
+  const double u = f.height() / 80.0;
+  const int w = f.width();
+  const double cx = w / 2.0;
+  const int baseY = static_cast<int>(f.height() - 26 * u);
+  const Rgb coat = scale(Rgb(122, 74, 40), in.sky.light);
+  const Rgb mane = scale(Rgb(34, 24, 18), in.sky.light);
+  const Rgb ear = scale(Rgb(96, 58, 32), in.sky.light);
+  const Rgb rein = scale(Rgb(44, 30, 20), in.sky.light);
+  for (int y = baseY; y < f.height(); ++y) {
+    const double k = (y - baseY) / u;
+    const double half = (5 + k * 0.62) * u;
+    for (int x = static_cast<int>(cx - half); x <= static_cast<int>(cx + half); ++x) {
+      const double edge = std::fabs(x - cx) / half;
+      Rgb c = scale(coat, 1.08 - 0.45 * edge * edge);
+      if (std::fabs(x - cx) < 2.2 * u && k < 20) {
+        c = mane;
+      }
+      f.set(x, y, c);
+    }
+  }
+  for (int side = -1; side <= 1; side += 2) {
+    const double earX = cx + side * 5 * u;
+    for (int k = 0; k < static_cast<int>(6 * u); ++k) {
+      const double half = (6 * u - k) / 2.5;
+      for (int x = static_cast<int>(earX - half); x <= static_cast<int>(earX + half); ++x) {
+        f.set(x, static_cast<int>(baseY - 6 * u + k), ear);
+      }
+    }
+    for (int k = 0; k < static_cast<int>(28 * u); ++k) {
+      f.set(static_cast<int>(cx + side * (6 * u + k * 1.9)),
+            static_cast<int>(baseY + 6 * u + k * 0.75), rein);
+    }
+  }
+}
+
 }  // namespace
 
 SkyState::SkyState()
@@ -259,7 +355,12 @@ SkyState::SkyState()
       stars(0.0) {}
 
 RenderInput::RenderInput(const WorldMap& world, const Camera& camera)
-    : map(&world), cam(camera), eyeHeight(0.5) {}
+    : map(&world),
+      cam(camera),
+      eyeHeight(0.5),
+      riding(false),
+      showHorse(false),
+      horse(0, 0) {}
 
 void renderView(const RenderInput& in, FrameBuffer& frame,
                 std::vector<double>& depth) {
@@ -277,5 +378,9 @@ void renderView(const RenderInput& in, FrameBuffer& frame,
   drawGround(in, frame, horizon, focal);
   for (int x = 0; x < w; ++x) {
     drawWallColumn(in, frame, depth, x, horizon, focal);
+  }
+  drawSprites(in, frame, depth, horizon, focal);
+  if (in.riding) {
+    drawRidingOverlay(in, frame);
   }
 }

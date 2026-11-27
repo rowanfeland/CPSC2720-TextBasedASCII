@@ -9,6 +9,7 @@
 #include "FrameBuffer.hpp"
 #include "Raycaster.hpp"
 #include "Rgb.hpp"
+#include "Sprite.hpp"
 #include "WallTextures.hpp"
 #include "WorldFiles.hpp"
 #include "WorldMap.hpp"
@@ -171,6 +172,85 @@ TEST(RaycasterTest, SunDrawnWhenFacingIt) {
     }
   }
   EXPECT_TRUE(sunPixel);
+}
+
+namespace {
+
+WorldMap mapWithPost(const char* tiles) {
+  WorldMap map = mapFrom(tiles);
+  Sprite post;
+  std::string why;
+  parseSprite("size 1.0 1.0\nR = 200 10 10\nRR\nRR\n", post, why);
+  map.addSprite("post", post);
+  std::ostringstream warn;
+  parseProps("post 3.5 1.5 no\n", map, warn);
+  return map;
+}
+
+}  // namespace
+
+TEST(RaycasterTest, SpriteVisible) {
+  WorldMap map = mapWithPost("......\n......\n......\n......\n......\n");
+  RenderInput in(map, Camera(3.5, 4.5, -kPi / 2));  // 3 tiles south, facing north
+  in.sky = daySky();
+  FrameBuffer fb(80, 40);
+  std::vector<double> depth;
+  renderView(in, fb, depth);
+  const int row = static_cast<int>(40 * kHorizonFraction) + 2;
+  EXPECT_GT(fb.get(40, row).r, 150);
+  EXPECT_LT(fb.get(40, row).g, 60);
+}
+
+TEST(RaycasterTest, SpriteHiddenBehindWall) {
+  WorldMap map = mapWithPost(
+      "......\n"
+      "......\n"
+      "..aaa.\n"
+      "......\n"
+      "......\n");
+  RenderInput in(map, Camera(3.5, 4.5, -kPi / 2));
+  in.sky = daySky();
+  FrameBuffer fb(80, 40);
+  std::vector<double> depth;
+  renderView(in, fb, depth);
+  const int row = static_cast<int>(40 * kHorizonFraction) + 2;
+  EXPECT_FALSE(fb.get(40, row).r > 150 && fb.get(40, row).g < 60);
+}
+
+TEST(RaycasterTest, HorseDrawnWhenShown) {
+  std::ostringstream warn;
+  WorldMap map = loadWorld("data/world", warn);
+  RenderInput in(map, Camera(50.5, 17.5, kPi));
+  in.sky = daySky();
+  in.showHorse = true;
+  in.horse = Point2(48.0, 17.5);
+  FrameBuffer with(80, 40);
+  FrameBuffer without(80, 40);
+  std::vector<double> depth;
+  renderView(in, with, depth);
+  in.showHorse = false;
+  renderView(in, without, depth);
+  int changed = 0;
+  for (int y = 0; y < 40; ++y) {
+    for (int x = 0; x < 80; ++x) {
+      changed += with.get(x, y) == without.get(x, y) ? 0 : 1;
+    }
+  }
+  EXPECT_GT(changed, 50);
+}
+
+TEST(RaycasterTest, RidingOverlayAtBottom) {
+  WorldMap map = mapFrom("......\n......\n..@...\n......\n");
+  RenderInput in(map, Camera(2.5, 2.5, 0.0));
+  in.sky = daySky();
+  FrameBuffer foot(80, 40);
+  FrameBuffer riding(80, 40);
+  std::vector<double> depth;
+  renderView(in, foot, depth);
+  in.riding = true;
+  renderView(in, riding, depth);
+  EXPECT_FALSE(foot.get(40, 39) == riding.get(40, 39));
+  EXPECT_TRUE(foot.get(2, 2) == riding.get(2, 2));
 }
 
 TEST(WallTexturesTest, DoorAndWindowOnFacade) {

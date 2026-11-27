@@ -1,5 +1,8 @@
 #include "WorldFiles.hpp"
 
+#include <dirent.h>
+
+#include <algorithm>
 #include <cctype>
 #include <fstream>
 #include <ostream>
@@ -164,6 +167,27 @@ bool parseZoneLine(const std::string& line, Zone& z) {
   return true;
 }
 
+bool parsePropLine(const std::string& line, Prop& p) {
+  std::istringstream in(line);
+  std::string name;
+  std::string x;
+  std::string y;
+  std::string blocking;
+  std::string extra;
+  if (!(in >> name >> x >> y >> blocking) || (in >> extra)) {
+    return false;
+  }
+  if (!toDouble(x, p.pos.x) || !toDouble(y, p.pos.y)) {
+    return false;
+  }
+  if (blocking != "yes" && blocking != "no") {
+    return false;
+  }
+  p.sprite = name;
+  p.blocking = blocking == "yes";
+  return true;
+}
+
 bool readFile(const std::string& path, std::string& out) {
   std::ifstream in(path.c_str(), std::ios::binary);
   if (!in) {
@@ -252,6 +276,54 @@ int parseZones(const std::string& text, WorldMap& map, std::ostream& warn) {
   return added;
 }
 
+int parseProps(const std::string& text, WorldMap& map, std::ostream& warn) {
+  const std::vector<std::string> lines = splitLines(text);
+  int added = 0;
+  for (std::vector<std::string>::size_type i = 0; i < lines.size(); ++i) {
+    if (isSkippable(lines[i])) {
+      continue;
+    }
+    Prop p;
+    if (parsePropLine(lines[i], p)) {
+      map.addProp(p);
+      ++added;
+    } else {
+      warn << "props.txt line " << (i + 1)
+           << " skipped: expected sprite x y yes|no\n";
+    }
+  }
+  return added;
+}
+
+namespace {
+
+void loadSprites(const std::string& dir, WorldMap& map, std::ostream& warn) {
+  DIR* folder = opendir(dir.c_str());
+  if (folder == nullptr) {
+    warn << "Missing sprite folder " << dir << "\n";
+    return;
+  }
+  const std::string ext = ".txt";
+  for (const dirent* e = readdir(folder); e != nullptr; e = readdir(folder)) {
+    const std::string file(e->d_name);
+    if (file.size() <= ext.size() ||
+        file.compare(file.size() - ext.size(), ext.size(), ext) != 0) {
+      continue;
+    }
+    std::string text;
+    Sprite sprite;
+    std::string why;
+    if (readFile(dir + "/" + file, text) && parseSprite(text, sprite, why)) {
+      map.addSprite(file.substr(0, file.size() - ext.size()), sprite);
+    } else {
+      warn << "sprites/" << file << " skipped: " << why << "\n";
+    }
+  }
+  closedir(folder);
+}
+
+}  // namespace
+
 WorldMap loadWorld(const std::string& dir, std::ostream& warn) {
   WorldMap map;
   std::string text;
@@ -270,6 +342,12 @@ WorldMap loadWorld(const std::string& dir, std::ostream& warn) {
   } else {
     warn << "Missing " << dir << "/zones.txt\n";
   }
+  if (readFile(dir + "/props.txt", text)) {
+    parseProps(text, map, warn);
+  } else {
+    warn << "Missing " << dir << "/props.txt\n";
+  }
+  loadSprites(dir + "/sprites", map, warn);
   return map;
 }
 

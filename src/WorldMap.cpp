@@ -1,8 +1,11 @@
 #include "WorldMap.hpp"
 
 #include <cmath>
+#include <map>
 #include <string>
 #include <vector>
+
+#include "Sprite.hpp"
 
 namespace {
 
@@ -37,7 +40,16 @@ bool WorldMap::isBlocked(double x, double y) const {
   const int cx = cellOf(x);
   const int cy = cellOf(y);
   const char c = tile(cx, cy);
-  return c == '#' || c == 'F' || buildingAt(cx, cy) != nullptr;
+  if (c == '#' || c == 'F' || buildingAt(cx, cy) != nullptr) {
+    return true;
+  }
+  for (std::vector<Prop>::size_type i = 0; i < props_.size(); ++i) {
+    if (props_[i].blocking &&
+        std::hypot(props_[i].pos.x - x, props_[i].pos.y - y) < kPropRadius) {
+      return true;
+    }
+  }
+  return false;
 }
 
 Ground WorldMap::groundAt(double x, double y) const {
@@ -101,3 +113,16 @@ const std::vector<BuildingDef>& WorldMap::buildings() const {
 }
 
 const std::vector<Zone>& WorldMap::zones() const { return zones_; }
+
+void WorldMap::addProp(const Prop& p) { props_.push_back(p); }
+
+const std::vector<Prop>& WorldMap::props() const { return props_; }
+
+void WorldMap::addSprite(const std::string& name, const Sprite& s) {
+  sprites_[name] = s;
+}
+
+const Sprite* WorldMap::sprite(const std::string& name) const {
+  const std::map<std::string, Sprite>::const_iterator it = sprites_.find(name);
+  return it == sprites_.end() ? nullptr : &it->second;
+}

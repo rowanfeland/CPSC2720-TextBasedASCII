@@ -5,11 +5,13 @@
 #ifndef WORLDMAP_HPP_INCLUDED
 #define WORLDMAP_HPP_INCLUDED
 
+#include <map>
 #include <string>
 #include <vector>
 
 #include "Geometry.hpp"
 #include "Rgb.hpp"
+#include "Sprite.hpp"
 
 /** @brief What the ground looks like on a tile. */
 enum class Ground { Sand, Street, Boardwalk, Grass, Salt };
@@ -44,6 +46,16 @@ struct Zone {
   Rect area;                ///< Tiles covered.
   std::string description;  ///< Shown by "look".
 };
+
+/** @brief A sprite placed in the world (headstone, cactus, barrel, ...). */
+struct Prop {
+  std::string sprite;  ///< Sprite name: data/world/sprites/<name>.txt.
+  Point2 pos;          ///< Where it stands.
+  bool blocking;       ///< Whether it stops the player.
+};
+
+/** @brief Blocking props stop the player within this distance. */
+const double kPropRadius = 0.3;
 
 /**
  * @brief The tile grid plus everything placed on it. Collision, zones and
@@ -99,6 +111,18 @@ class WorldMap {
   /** @brief All zones, in priority order. */
   const std::vector<Zone>& zones() const;
 
+  /** @brief Places a prop. */
+  void addProp(const Prop& p);
+
+  /** @brief All placed props. */
+  const std::vector<Prop>& props() const;
+
+  /** @brief Adds or replaces a named sprite. */
+  void addSprite(const std::string& name, const Sprite& s);
+
+  /** @brief The sprite with this name, or nullptr. */
+  const Sprite* sprite(const std::string& name) const;
+
  private:
   std::vector<std::string> rows_;
   int width_;
@@ -106,6 +130,8 @@ class WorldMap {
   Point2 start_;
   std::vector<BuildingDef> buildings_;
   std::vector<Zone> zones_;
+  std::vector<Prop> props_;
+  std::map<std::string, Sprite> sprites_;
 };
 
 #endif  // WORLDMAP_HPP_INCLUDED

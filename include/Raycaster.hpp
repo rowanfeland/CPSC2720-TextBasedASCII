@@ -40,14 +40,18 @@ struct RenderInput {
   Camera cam;           ///< Eye position and facing.
   double eyeHeight;     ///< 0.5 on foot, higher when riding.
   SkyState sky;         ///< Time-of-day look.
+  bool riding;          ///< Draw the horse's ears, mane and reins at the bottom.
+  bool showHorse;       ///< Draw the horse standing in the world.
+  Point2 horse;         ///< Where the horse stands (when shown).
 
   /** @brief On-foot view of a map from a camera, at sunset. */
   RenderInput(const WorldMap& world, const Camera& camera);
 };
 
 /**
- * @brief Draws sky, sun or moon, stars, distant mountains, the ground and all
- * walls. Pure: the same input always gives the same pixels.
+ * @brief Draws sky, sun or moon, stars, distant mountains, the ground, all
+ * walls, every prop sprite, the horse and (when riding) the riding overlay.
+ * Pure: the same input always gives the same pixels.
  * @param depth Resized to width x height; holds wall distance per pixel
  *              (very large where no wall was drawn), for sprites.
  */

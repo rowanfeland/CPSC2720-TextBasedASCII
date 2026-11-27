@@ -118,7 +118,7 @@ TEST(ExteriorGameTest, StartsAtMapStartFacingWest) {
 TEST(ExteriorGameTest, ArrowsMoveAndTurn) {
   Harness h;
   ExteriorGame* g = h.play({Key(KeyType::Up), Key(KeyType::Up)});
-  EXPECT_NEAR(h.map.start().x - 1.0, g->camera().x(), 1e-6);
+  EXPECT_NEAR(h.map.start().x - 2.0, g->camera().x(), 1e-6);  // riding
   Harness t;
   ExteriorGame* turned = t.play({Key(KeyType::Left), Key(KeyType::Down)});
   EXPECT_LT(turned->camera().angle(), 3.14159);
@@ -209,6 +209,35 @@ TEST(ExteriorGameTest, PlainModeHasNoColour) {
   Harness h;
   h.play({Key(KeyType::Up)}, true);
   EXPECT_EQ(std::string::npos, h.screen.all().find("38;2;"));
+}
+
+TEST(ExteriorGameTest, StartsRiding) {
+  Harness h;
+  ExteriorGame* g = h.play({Key(KeyType::Up)});
+  EXPECT_TRUE(g->horse().isMounted());
+  EXPECT_NEAR(h.map.start().x - 1.0, g->camera().x(), 1e-6);  // two half-steps
+  EXPECT_NE(std::string::npos, h.screen.all().find("riding"));
+}
+
+TEST(ExteriorGameTest, DismountThenWalkSlower) {
+  Harness h;
+  ExteriorGame* g = h.play(join(typed("dismount"), {Key(KeyType::Up)}));
+  EXPECT_FALSE(g->horse().isMounted());
+  EXPECT_EQ("You swing down from the saddle.", g->lastMessage());
+  EXPECT_NEAR(h.map.start().x - 0.5, g->camera().x(), 1e-6);
+  EXPECT_NE(std::string::npos, h.screen.all().find("on foot"));
+}
+
+TEST(ExteriorGameTest, MountNeedsHorseNearby) {
+  Harness h;
+  std::vector<Key> keys = typed("dismount");
+  keys = join(keys, repeat(KeyType::Up, 8));
+  keys = join(keys, typed("mount"));
+  ExteriorGame* g = h.play(keys);
+  EXPECT_EQ("Your horse is too far away.", g->lastMessage());
+  Harness back;
+  ExteriorGame* again = back.play(join(typed("dismount"), typed("ride horse")));
+  EXPECT_TRUE(again->horse().isMounted());
 }
 
 TEST(ExteriorGameTest, LongInputIsCapped) {
