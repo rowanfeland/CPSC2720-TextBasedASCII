@@ -113,6 +113,7 @@ ExteriorGame::ExteriorGame(const WorldMap& map, World& world, Player& player,
       camera_(map.start().x, map.start().y, kPi),
       horse_(map.start(), true),
       inside_(false),
+      tooSmall_(false),
       entry_(nullptr),
       scenes_(nullptr),
       previous_(0, 0) {
@@ -131,6 +132,9 @@ bool ExteriorGame::handleKey(const Key& key) {
                      key.type == KeyType::Down ||
                      key.type == KeyType::Left ||
                      key.type == KeyType::Right;
+  if (tooSmall_ && arrow) {
+    return true;  // can't see: don't move blind
+  }
   if (inside_ && arrow) {
     message_ = kIndoors;
     return true;
@@ -228,7 +232,8 @@ void ExteriorGame::draw() {
   int cols = kMinCols;
   int rows = kMinRows;
   screen_.size(cols, rows);
-  if (cols < kMinCols || rows < kMinRows) {
+  tooSmall_ = cols < kMinCols || rows < kMinRows;
+  if (tooSmall_) {
     previous_ = FrameBuffer(0, 0);
     pictureKey_.clear();
     screen_.write(std::string("\033[0m\033[2J\033[H") + kTooSmall);

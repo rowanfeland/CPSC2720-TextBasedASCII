@@ -9,6 +9,7 @@
  *   --plain  draw with density characters instead of colour
  */
 #include <cstring>
+#include <exception>
 #include <iostream>
 #include <memory>
 
@@ -60,7 +61,17 @@ int main(int argc, char** argv) {
     TerminalKeyInput keys;
     ExteriorGame game(map, *world, player, state, registry, keys, screen, plain);
     game.setScenes(&scenes);
-    game.run();
+    try {
+      game.run();
+    } catch (const std::exception& e) {
+      RawTerminal::restore();  // never leave the terminal raw
+      std::cerr << "The Line stopped: " << e.what() << "\n";
+      return 1;
+    } catch (...) {
+      RawTerminal::restore();
+      std::cerr << "The Line stopped unexpectedly.\n";
+      return 1;
+    }
     return 0;
   }
 

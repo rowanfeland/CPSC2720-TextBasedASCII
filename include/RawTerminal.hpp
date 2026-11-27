@@ -8,9 +8,10 @@
 
 /**
  * @brief While an instance exists: keys arrive one at a time without echo,
- * the alternate screen is shown and the cursor is hidden. The terminal is
- * restored by the destructor, at normal program exit, and on Ctrl-C or
- * termination signals. Only one instance may exist at a time.
+ * the alternate screen is shown and the cursor is hidden. Keys never raise
+ * signals (Ctrl-C arrives as a key). The terminal is restored by the
+ * destructor, at normal program exit, and on termination, hang-up, abort
+ * and crash signals. Only one instance may exist at a time.
  */
 class RawTerminal {
  public:
@@ -31,6 +32,9 @@ class RawTerminal {
 
   /** @brief Restores the terminal now (safe to call more than once). */
   static void restore();
+
+  /** @brief True once after the window has been resized. */
+  static bool takeResize();
 };
 
 #endif  // RAWTERMINAL_HPP_INCLUDED

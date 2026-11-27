@@ -1,5 +1,6 @@
 #include "Camera.hpp"
 
+#include <algorithm>
 #include <cmath>
 
 #include "WorldMap.hpp"
@@ -11,12 +12,11 @@ const double kFieldOfView = 0.66;  // camera plane length; about 66 degrees
 const double kRadius = 0.2;        // space kept clear around the player
 const double kMinMove = 1e-6;      // smaller moves are rounding, not steps
 
+const double kSubStep = 0.25;     // longest move checked at once
+
 /** True if a player centred at (x, y) has room to stand there. */
 bool fits(const WorldMap& map, double x, double y) {
-  return !map.isBlocked(x - kRadius, y - kRadius) &&
-         !map.isBlocked(x + kRadius, y - kRadius) &&
-         !map.isBlocked(x - kRadius, y + kRadius) &&
-         !map.isBlocked(x + kRadius, y + kRadius);
+  return !map.boxBlocked(x, y, kRadius);
 }
 
 }  // namespace
@@ -56,13 +56,18 @@ void Camera::setPosition(double x, double y) {
 bool Camera::step(const WorldMap& map, double distance) {
   const double startX = x_;
   const double startY = y_;
-  const double nx = x_ + dirX() * distance;
-  const double ny = y_ + dirY() * distance;
-  if (fits(map, nx, y_)) {
-    x_ = nx;
-  }
-  if (fits(map, x_, ny)) {
-    y_ = ny;
+  const int pieces =
+      std::max(1, static_cast<int>(std::ceil(std::fabs(distance) / kSubStep)));
+  const double piece = distance / pieces;
+  for (int i = 0; i < pieces; ++i) {
+    const double nx = x_ + dirX() * piece;
+    const double ny = y_ + dirY() * piece;
+    if (fits(map, nx, y_)) {
+      x_ = nx;
+    }
+    if (fits(map, x_, ny)) {
+      y_ = ny;
+    }
   }
   return std::hypot(x_ - startX, y_ - startY) > kMinMove;
 }

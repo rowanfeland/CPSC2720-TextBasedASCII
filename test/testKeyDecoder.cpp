@@ -92,6 +92,19 @@ TEST(KeyDecoderTest, FlushPendingEscape) {
   EXPECT_TRUE(d.flush().empty());
 }
 
+TEST(KeyDecoderTest, CtrlCEndsTheGame) {
+  KeyDecoder d;
+  std::vector<Key> keys = d.feed('\x03');
+  ASSERT_EQ(1u, keys.size());
+  EXPECT_EQ(KeyType::Eof, keys[0].type);
+}
+
+TEST(KeyDecoderTest, CtrlZAndBackslashIgnored) {
+  KeyDecoder d;
+  EXPECT_TRUE(d.feed('\x1a').empty());
+  EXPECT_TRUE(d.feed('\x1c').empty());
+}
+
 TEST(KeyDecoderTest, IgnoresOtherControls) {
   KeyDecoder d;
   EXPECT_TRUE(d.feed('\x01').empty());

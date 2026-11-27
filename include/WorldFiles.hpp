@@ -39,6 +39,12 @@ int parseZones(const std::string& text, WorldMap& map, std::ostream& warn);
 int parseProps(const std::string& text, WorldMap& map, std::ostream& warn);
 
 /**
+ * @brief Checks a loaded world: doors on blocked tiles are turned off
+ * (with a warning naming the building).
+ */
+void validateWorld(WorldMap& map, std::ostream& warn);
+
+/**
  * @brief Loads town.map, buildings.txt, zones.txt, props.txt and every .txt
  * file in the sprites folder.
  * Falls back to defaultWorld() (with a warning naming the folder) if

@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "Key.hpp"
+#include "RawTerminal.hpp"
 
 namespace {
 
@@ -24,6 +25,12 @@ bool byteReady(int waitMs) {
 
 Key TerminalKeyInput::readKey() {
   while (queued_.empty()) {
+    if (RawTerminal::takeResize()) {
+      return Key(KeyType::None);  // redraw at the new size
+    }
+    if (!decoder_.pending() && !byteReady(-1)) {
+      continue;  // woken by a signal (e.g. resize)
+    }
     if (decoder_.pending() && !byteReady(kEscapeWaitMs)) {
       std::vector<Key> flushed = decoder_.flush();
       queued_.insert(queued_.end(), flushed.begin(), flushed.end());

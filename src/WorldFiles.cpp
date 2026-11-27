@@ -324,6 +324,19 @@ void loadSprites(const std::string& dir, WorldMap& map, std::ostream& warn) {
 
 }  // namespace
 
+void validateWorld(WorldMap& map, std::ostream& warn) {
+  const std::vector<BuildingDef>& buildings = map.buildings();
+  for (std::vector<BuildingDef>::size_type i = 0; i < buildings.size(); ++i) {
+    const BuildingDef& b = buildings[i];
+    if (map.isBlocked(b.doorX + 0.5, b.doorY + 0.5)) {
+      warn << "buildings.txt: the door of " << b.id << " (" << b.doorX
+           << "," << b.doorY
+           << ") is on a blocked tile, so it can't be entered.\n";
+      map.disableDoor(i);
+    }
+  }
+}
+
 WorldMap loadWorld(const std::string& dir, std::ostream& warn) {
   WorldMap map;
   std::string text;
@@ -348,6 +361,12 @@ WorldMap loadWorld(const std::string& dir, std::ostream& warn) {
     warn << "Missing " << dir << "/props.txt\n";
   }
   loadSprites(dir + "/sprites", map, warn);
+  validateWorld(map, warn);
+  if (map.isBlocked(map.start().x, map.start().y)) {
+    warn << "The start in " << dir
+         << "/town.map is blocked; using a small built-in street.\n";
+    return defaultWorld();
+  }
   SkyModel sky;
   if (sky.load(dir + "/sky.txt", warn)) {
     map.setSky(sky);

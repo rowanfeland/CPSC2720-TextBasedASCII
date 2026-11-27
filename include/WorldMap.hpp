@@ -88,6 +88,15 @@ class WorldMap {
   /** @brief True for rock, fences, buildings and anything off the map. */
   bool isBlocked(double x, double y) const;
 
+  /**
+   * @brief True if a square of half-width half centred at (x, y) touches a
+   * blocked tile (at its corners) or overlaps a blocking prop's circle.
+   */
+  bool boxBlocked(double x, double y, double half) const;
+
+  /** @brief Turns off a building's door (it can no longer be entered). */
+  void disableDoor(std::size_t index);
+
   /** @brief Ground type under a position. */
   Ground groundAt(double x, double y) const;
 

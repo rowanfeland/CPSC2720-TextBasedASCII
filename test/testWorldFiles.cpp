@@ -71,6 +71,33 @@ TEST(WorldFilesTest, LoadsShippedWorld) {
   }
 }
 
+TEST(WorldFilesTest, BlockedDoorDisabledWithWarning) {
+  WorldMap map;
+  std::ostringstream warn;
+  parseTownMap("....\n.aa.\n.aa.\n.@..\n", map);
+  parseBuildings("a shed \"SHED\" 1 planks 1,1,1 2,2,2 1,1 S shed\n", map, warn);
+  validateWorld(map, warn);
+  EXPECT_NE(std::string::npos, warn.str().find("shed"));
+  EXPECT_EQ(nullptr, map.doorNear(1.5, 1.5, 3.0));
+}
+
+TEST(WorldFilesTest, GoodDoorKept) {
+  WorldMap map;
+  std::ostringstream warn;
+  parseTownMap("....\n.aa.\n.aa.\n.@..\n", map);
+  parseBuildings("a shed \"SHED\" 1 planks 1,1,1 2,2,2 1,3 S shed\n", map, warn);
+  validateWorld(map, warn);
+  EXPECT_EQ("", warn.str());
+  EXPECT_NE(nullptr, map.doorNear(1.5, 3.5, 1.0));
+}
+
+TEST(WorldFilesTest, BlockedStartFallsBack) {
+  std::ostringstream warn;
+  WorldMap map = loadWorld("test/data/walled-world", warn);
+  EXPECT_NE(std::string::npos, warn.str().find("start"));
+  EXPECT_FALSE(map.isBlocked(map.start().x, map.start().y));
+}
+
 TEST(WorldFilesTest, MissingDirFallsBack) {
   std::ostringstream warn;
   WorldMap map = loadWorld("test/data/no-such-world", warn);

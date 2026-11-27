@@ -1,5 +1,6 @@
 #include "WorldMap.hpp"
 
+#include <algorithm>
 #include <cmath>
 #include <map>
 #include <string>
@@ -10,6 +11,8 @@
 namespace {
 
 int cellOf(double v) { return static_cast<int>(std::floor(v)); }
+
+const int kNoDoor = -100000;  // far off the map: never near anyone
 
 }  // namespace
 
@@ -50,6 +53,31 @@ bool WorldMap::isBlocked(double x, double y) const {
     }
   }
   return false;
+}
+
+bool WorldMap::boxBlocked(double x, double y, double half) const {
+  const Point2 corners[] = {Point2(x - half, y - half), Point2(x + half, y - half),
+                            Point2(x - half, y + half), Point2(x + half, y + half)};
+  const bool wall = std::any_of(
+      std::begin(corners), std::end(corners), [this](const Point2& p) {
+        const char c = tile(cellOf(p.x), cellOf(p.y));
+        return c == '#' || c == 'F' ||
+               buildingAt(cellOf(p.x), cellOf(p.y)) != nullptr;
+      });
+  // A prop blocks when its circle reaches the nearest point of the box.
+  return wall || std::any_of(props_.begin(), props_.end(), [=](const Prop& p) {
+           const double nx = std::max(x - half, std::min(p.pos.x, x + half));
+           const double ny = std::max(y - half, std::min(p.pos.y, y + half));
+           return p.blocking &&
+                  std::hypot(p.pos.x - nx, p.pos.y - ny) < kPropRadius;
+         });
+}
+
+void WorldMap::disableDoor(std::size_t index) {
+  if (index < buildings_.size()) {
+    buildings_[index].doorX = kNoDoor;
+    buildings_[index].doorY = kNoDoor;
+  }
 }
 
 Ground WorldMap::groundAt(double x, double y) const {

@@ -10,6 +10,7 @@ const char kEscape = '\033';
 const char kDelete = 127;
 const char kCtrlH = 8;
 const char kCtrlD = 4;
+const char kCtrlC = 3;
 
 std::vector<Key> one(KeyType type, char ch = '\0') {
   return std::vector<Key>(1, Key(type, ch));
@@ -40,7 +41,7 @@ std::vector<Key> KeyDecoder::normal(char byte) {
   if (byte == kDelete || byte == kCtrlH) {
     return one(KeyType::Backspace);
   }
-  if (byte == kCtrlD) {
+  if (byte == kCtrlD || byte == kCtrlC) {
     return one(KeyType::Eof);
   }
   if (byte >= ' ' && byte <= '~') {

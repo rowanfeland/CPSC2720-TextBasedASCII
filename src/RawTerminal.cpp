@@ -12,6 +12,7 @@ namespace {
 
 termios gSaved;
 volatile sig_atomic_t gActive = 0;
+volatile sig_atomic_t gResized = 0;
 bool gHooksInstalled = false;
 
 const char kEnter[] = "\033[?1049h\033[?25l\033[2J";
@@ -30,6 +31,16 @@ void onSignal(int sig) {
 
 void onExit() { RawTerminal::restore(); }
 
+void onResize(int) { gResized = 1; }
+
+void install(int sig, void (*handler)(int)) {
+  struct sigaction action;
+  std::memset(&action, 0, sizeof(action));
+  action.sa_handler = handler;
+  sigemptyset(&action.sa_mask);
+  sigaction(sig, &action, nullptr);  // no SA_RESTART: wakes up poll()
+}
+
 }  // namespace
 
 RawTerminal::RawTerminal() {
@@ -37,7 +48,7 @@ RawTerminal::RawTerminal() {
     return;
   }
   termios raw = gSaved;
-  raw.c_lflag &= ~static_cast<tcflag_t>(ICANON | ECHO);
+  raw.c_lflag &= ~static_cast<tcflag_t>(ICANON | ECHO | ISIG);
   raw.c_iflag &= ~static_cast<tcflag_t>(IXON | ICRNL);
   raw.c_cc[VMIN] = 1;
   raw.c_cc[VTIME] = 0;
@@ -45,9 +56,11 @@ RawTerminal::RawTerminal() {
   gActive = 1;
   if (!gHooksInstalled) {
     std::atexit(onExit);
-    signal(SIGINT, onSignal);
-    signal(SIGTERM, onSignal);
-    signal(SIGHUP, onSignal);
+    const int fatal[] = {SIGINT, SIGTERM, SIGHUP, SIGQUIT, SIGABRT, SIGSEGV};
+    for (int sig : fatal) {
+      install(sig, onSignal);
+    }
+    install(SIGWINCH, onResize);
     gHooksInstalled = true;
   }
   writeAll(kEnter);
@@ -62,6 +75,14 @@ void RawTerminal::restore() {
   gActive = 0;
   tcsetattr(STDIN_FILENO, TCSAFLUSH, &gSaved);
   writeAll(kLeave);
+}
+
+bool RawTerminal::takeResize() {
+  if (!gResized) {
+    return false;
+  }
+  gResized = 0;
+  return true;
 }
 
 bool RawTerminal::size(int& cols, int& rows) {

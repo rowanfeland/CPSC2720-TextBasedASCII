@@ -193,6 +193,13 @@ TEST(ExteriorGameTest, TooSmallTerminal) {
   EXPECT_NE(std::string::npos, h.screen.all().find("Make the terminal bigger"));
 }
 
+TEST(ExteriorGameTest, TooSmallIgnoresMovement) {
+  Harness h(40, 10);
+  ExteriorGame* g = h.play({Key(KeyType::Up), Key(KeyType::Left)});
+  EXPECT_NEAR(h.map.start().x, g->camera().x(), 1e-9);
+  EXPECT_NEAR(3.14159265, g->camera().angle(), 1e-6);
+}
+
 TEST(ExteriorGameTest, ZoneChangeUpdatesRoom) {
   Harness h;
   EXPECT_EQ("desert_road", h.player.getCurrentRoom()->getId());
@@ -260,7 +267,7 @@ TEST(ExteriorGameTest, BlockedStepCostsNothing) {
   Harness h;
   // Turn to face the open desert edge east and walk until blocked by the map edge.
   std::vector<Key> keys = repeat(KeyType::Right, 12);  // 180 degrees: face east
-  keys = join(keys, repeat(KeyType::Up, 3));           // reach the edge
+  keys = join(keys, repeat(KeyType::Up, 8));           // reach and settle at the edge
   ExteriorGame* g = h.play(keys);
   const std::string after = g->clock().format();
   Harness again;

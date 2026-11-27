@@ -2,6 +2,7 @@
 
 #include <cmath>
 #include <random>
+#include <sstream>
 
 #include "Camera.hpp"
 #include "WorldFiles.hpp"
@@ -77,6 +78,29 @@ TEST(CameraTest, NeverInsideWall) {
     c.step(map, (i % 3 == 0) ? -0.5 : 1.0);
     ASSERT_FALSE(map.isBlocked(c.x(), c.y())) << "step " << i;
   }
+}
+
+TEST(CameraTest, RidingCannotPassProp) {
+  WorldMap map = room();
+  std::ostringstream warn;
+  parseProps("post 4.0 1.5 yes\n", map, warn);
+  Camera c(2.0, 1.5, 0.0);  // facing east, post 2 tiles ahead
+  for (int i = 0; i < 4; ++i) {
+    c.step(map, 1.0);  // riding-length steps
+  }
+  EXPECT_LT(c.x(), 4.0 - kPropRadius - 0.19);
+}
+
+TEST(CameraTest, BoxEdgeTouchingPropBlocked) {
+  WorldMap map = room();
+  std::ostringstream warn;
+  parseProps("post 4.0 2.0 yes\n", map, warn);
+  // Box edge (not a corner) would overlap the post's circle.
+  Camera c(3.0, 2.0, 0.0);
+  for (int i = 0; i < 8; ++i) {
+    c.step(map, 0.25);
+  }
+  EXPECT_LT(c.x(), 4.0 - kPropRadius - 0.19);
 }
 
 TEST(CameraTest, SetPosition) {

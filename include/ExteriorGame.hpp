@@ -114,6 +114,7 @@ class ExteriorGame {
   Horse horse_;
   GameClock clock_;
   bool inside_;
+  bool tooSmall_;
   const BuildingDef* entry_;
   const SceneLibrary* scenes_;
   std::string pictureKey_;
