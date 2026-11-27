@@ -50,18 +50,20 @@ int main(int argc, char** argv) {
   GameState state;
   Player player(world->getStartRoom(), kCarryCapacity);
 
+  SceneLibrary scenes;
+  scenes.loadFromDirectory(kArtFolder);  // Missing art falls back to placeholders.
+
   if (RawTerminal::isInteractive()) {
     const WorldMap map = loadWorld(kWorldFolder, std::cerr);
     RawTerminal raw;
     TerminalScreen screen;
     TerminalKeyInput keys;
     ExteriorGame game(map, *world, player, state, registry, keys, screen, plain);
+    game.setScenes(&scenes);
     game.run();
     return 0;
   }
 
-  SceneLibrary scenes;
-  scenes.loadFromDirectory(kArtFolder);  // Missing art falls back to placeholders.
   ConsoleDisplay display;
   ConsoleInput input;
   Game game(*world, player, state, registry, scenes, display, input,

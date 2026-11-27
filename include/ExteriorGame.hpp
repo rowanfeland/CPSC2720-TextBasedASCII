@@ -19,6 +19,7 @@
 #include "IScreen.hpp"
 #include "Key.hpp"
 #include "Player.hpp"
+#include "SceneLibrary.hpp"
 #include "World.hpp"
 #include "WorldMap.hpp"
 
@@ -28,6 +29,10 @@ const int kTextRows = 4;
 const int kMinCols = 80;
 /** @brief Smallest terminal the 3D view needs. */
 const int kMinRows = 24;
+/** @brief How close you must stand to a door to enter. */
+const double kEnterRange = 1.5;
+/** @brief Rows under the picture when inside a location. */
+const int kInsideTextRows = 8;
 /** @brief Longest command the input line accepts. */
 const std::string::size_type kMaxInput = 60;
 
@@ -72,6 +77,12 @@ class ExteriorGame {
   /** @brief The time of day. */
   const GameClock& clock() const;
 
+  /** @brief True while you are inside a location screen. */
+  bool isInside() const;
+
+  /** @brief Pictures for location screens (nullptr = placeholders). */
+  void setScenes(const SceneLibrary* scenes);
+
   /** @brief What has been typed so far. */
   const std::string& inputLine() const;
 
@@ -81,6 +92,11 @@ class ExteriorGame {
  private:
   void walk(double direction);
   void passTime(int minutes);
+  std::string enterDoor(const std::string& place);
+  std::string leaveBuilding();
+  std::string runInside(const std::string& typed);
+  bool isOutdoorRoom(const Room* room) const;
+  void drawInside(int cols, int rows);
   void updateRoom();
   std::string describeHere() const;
   std::string statusLine() const;
@@ -97,6 +113,10 @@ class ExteriorGame {
   Camera camera_;
   Horse horse_;
   GameClock clock_;
+  bool inside_;
+  const BuildingDef* entry_;
+  const SceneLibrary* scenes_;
+  std::string pictureKey_;
   std::string input_;
   std::string message_;
   FrameBuffer previous_;

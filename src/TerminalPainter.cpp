@@ -21,10 +21,9 @@ std::string moveTo(int row, int col) {
   return buf;
 }
 
-std::string colours(const Rgb& top, const Rgb& bottom) {
-  char buf[64];
-  std::snprintf(buf, sizeof(buf), "\033[38;2;%d;%d;%dm\033[48;2;%d;%d;%dm",
-                top.r, top.g, top.b, bottom.r, bottom.g, bottom.b);
+std::string colourCode(int layer, const Rgb& c) {
+  char buf[32];
+  std::snprintf(buf, sizeof(buf), "\033[%d;2;%d;%d;%dm", layer, c.r, c.g, c.b);
   return buf;
 }
 
@@ -33,11 +32,23 @@ bool cellDiffers(const FrameBuffer& a, const FrameBuffer& b, int x, int row) {
          a.get(x, 2 * row + 1) != b.get(x, 2 * row + 1);
 }
 
-/** Appends cells [from, to) of one cell row. */
+/**
+ * Appends cells [from, to) of one cell row. Colour codes are sent only when
+ * they change, since the terminal keeps the last colour set.
+ */
 void appendCells(std::string& out, const FrameBuffer& f, int row, int from,
                  int to) {
+  const int kForeground = 38;
+  const int kBackground = 48;
   for (int x = from; x < to; ++x) {
-    out += colours(f.get(x, 2 * row), f.get(x, 2 * row + 1));
+    const Rgb top = f.get(x, 2 * row);
+    const Rgb bottom = f.get(x, 2 * row + 1);
+    if (x == from || top != f.get(x - 1, 2 * row)) {
+      out += colourCode(kForeground, top);
+    }
+    if (x == from || bottom != f.get(x - 1, 2 * row + 1)) {
+      out += colourCode(kBackground, bottom);
+    }
     out += kHalfBlock;
   }
 }

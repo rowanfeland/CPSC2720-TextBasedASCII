@@ -1,5 +1,6 @@
 #include "ExteriorGame.hpp"
 
+#include <algorithm>
 #include <cctype>
 #include <cmath>
 #include <cstdio>
@@ -11,8 +12,11 @@
 #include "Command.hpp"
 #include "Horse.hpp"
 #include "CommandParser.hpp"
+#include "GreyImage.hpp"
 #include "Raycaster.hpp"
 #include "Room.hpp"
+#include "SceneLibrary.hpp"
+#include "SceneRenderer.hpp"
 #include "TerminalPainter.hpp"
 #include "TextUtil.hpp"
 
@@ -20,6 +24,11 @@ namespace {
 
 const double kPi = 3.14159265358979323846;
 const char kTooSmall[] = "Make the terminal bigger (80 x 24 or more).";
+const char kIndoors[] = "You're indoors. Type leave to go back outside.";
+const char kInsideHelp[] =
+    "Type commands, then press Enter.\n"
+    "Commands: look, look <thing>, go <exit>, take, drop, inventory, wait, "
+    "leave, help, quit";
 const char kHelp[] =
     "Arrow keys walk and turn. Type a command, then press Enter.\n"
     "Commands: look, look <thing>, mount, dismount, wait, take, drop, "
@@ -45,6 +54,26 @@ std::string moveTo(int row) {
   char buf[32];
   std::snprintf(buf, sizeof(buf), "\033[%d;1H\033[0m\033[2K", row);
   return buf;
+}
+
+double facingAway(char facing) {
+  switch (facing) {
+    case 'N':
+      return kPi * 1.5;
+    case 'E':
+      return 0.0;
+    case 'W':
+      return kPi;
+    default:
+      return kPi / 2;
+  }
+}
+
+bool namesDoor(const BuildingDef& b, const std::string& place) {
+  const std::string label = normalize(b.label);
+  return place == b.id || place == b.roomId || label == place ||
+         b.id.compare(0, place.size(), place) == 0 ||
+         label.find(place) != std::string::npos;
 }
 
 std::vector<std::string> wrap(const std::string& text, std::string::size_type width) {
@@ -83,6 +112,9 @@ ExteriorGame::ExteriorGame(const WorldMap& map, World& world, Player& player,
       plain_(plain),
       camera_(map.start().x, map.start().y, kPi),
       horse_(map.start(), true),
+      inside_(false),
+      entry_(nullptr),
+      scenes_(nullptr),
       previous_(0, 0) {
   updateRoom();
 }
@@ -95,6 +127,14 @@ void ExteriorGame::run() {
 }
 
 bool ExteriorGame::handleKey(const Key& key) {
+  const bool arrow = key.type == KeyType::Up ||
+                     key.type == KeyType::Down ||
+                     key.type == KeyType::Left ||
+                     key.type == KeyType::Right;
+  if (inside_ && arrow) {
+    message_ = kIndoors;
+    return true;
+  }
   switch (key.type) {
     case KeyType::Up:
       walk(1.0);
@@ -135,7 +175,14 @@ std::string ExteriorGame::runCommand(const std::string& line) {
   if (typed.empty()) {
     return "Type a command, or help.";
   }
+  if (inside_) {
+    return runInside(typed);
+  }
   const ParsedCommand cmd = CommandParser::parse(registry_.expand(typed));
+  const ParsedCommand raw = CommandParser::parse(typed);
+  if (raw.verb == "enter") {
+    return enterDoor(raw.noun);
+  }
   if (cmd.verb == "look" && cmd.noun.empty()) {
     return describeHere();
   }
@@ -183,7 +230,12 @@ void ExteriorGame::draw() {
   screen_.size(cols, rows);
   if (cols < kMinCols || rows < kMinRows) {
     previous_ = FrameBuffer(0, 0);
+    pictureKey_.clear();
     screen_.write(std::string("\033[0m\033[2J\033[H") + kTooSmall);
+    return;
+  }
+  if (inside_) {
+    drawInside(cols, rows);
     return;
   }
   FrameBuffer frame(cols, (rows - kTextRows) * 2);
@@ -210,6 +262,144 @@ const Camera& ExteriorGame::camera() const { return camera_; }
 const Horse& ExteriorGame::horse() const { return horse_; }
 
 const GameClock& ExteriorGame::clock() const { return clock_; }
+
+bool ExteriorGame::isInside() const { return inside_; }
+
+void ExteriorGame::setScenes(const SceneLibrary* scenes) { scenes_ = scenes; }
+
+std::string ExteriorGame::enterDoor(const std::string& place) {
+  if (horse_.isMounted()) {
+    return "Dismount first.";
+  }
+  const BuildingDef* door =
+      map_.doorNear(camera_.x(), camera_.y(), kEnterRange);
+  if (door == nullptr) {
+    return "There's no door here.";
+  }
+  if (!place.empty() && !namesDoor(*door, place)) {
+    return "You're not at the " + place + ".";
+  }
+  Room* room = world_.getRoom(door->roomId);
+  if (room == nullptr) {
+    return "That door won't open.";
+  }
+  std::string why;
+  if (!room->canEnter(why)) {
+    return why;
+  }
+  player_.moveTo(room);
+  inside_ = true;
+  entry_ = door;
+  pictureKey_.clear();
+  passTime(kActionMinutes);
+  return "";
+}
+
+std::string ExteriorGame::leaveBuilding() {
+  inside_ = false;
+  if (entry_ != nullptr) {
+    camera_.setPosition(entry_->doorX + 0.5, entry_->doorY + 0.5);
+    camera_.setAngle(facingAway(entry_->facing));
+  }
+  previous_ = FrameBuffer(0, 0);
+  updateRoom();
+  passTime(kActionMinutes);
+  return "You step back outside.";
+}
+
+bool ExteriorGame::isOutdoorRoom(const Room* room) const {
+  for (const Zone& z : map_.zones()) {
+    if (room != nullptr && z.roomId == room->getId()) {
+      return true;
+    }
+  }
+  return false;
+}
+
+std::string ExteriorGame::runInside(const std::string& typed) {
+  const std::string first = CommandParser::parse(typed).verb;
+  if (first == "leave" || first == "exit" || first == "out") {
+    return leaveBuilding();
+  }
+  if (first == "wait") {
+    passTime(kWaitMinutes);
+    return "You wait. Time passes.";
+  }
+  if (first == "mount" || first == "ride" || first == "dismount") {
+    return "Your horse is waiting outside.";
+  }
+  const ParsedCommand cmd = CommandParser::parse(registry_.expand(typed));
+  if (cmd.verb == "help") {
+    return kInsideHelp;
+  }
+  if (cmd.verb == "quit") {
+    state_.requestQuit();
+    return "You turn your horse around.";
+  }
+  Command* command = registry_.find(cmd.verb);
+  if (command == nullptr) {
+    return "I don't understand \"" + typed + "\". Type help.";
+  }
+  const Room* before = player_.getCurrentRoom();
+  const std::string result = command->execute(cmd, player_, state_);
+  if (player_.getCurrentRoom() != before) {
+    if (isOutdoorRoom(player_.getCurrentRoom())) {
+      return leaveBuilding();
+    }
+    passTime(kActionMinutes);
+  } else if (result.compare(0, 6, "Taken:") == 0 ||
+             result.compare(0, 8, "Dropped:") == 0) {
+    passTime(kActionMinutes);
+  }
+  return result;
+}
+
+void ExteriorGame::drawInside(int cols, int rows) {
+  const Room* room = player_.getCurrentRoom();
+  const int pictureRows = rows - kInsideTextRows;
+  std::string out;
+  const std::string key =
+      room->getId() + "/" +
+      std::to_string(static_cast<int>(room->sceneKind())) + "/" +
+      std::to_string(state_.getDay());
+  if (key != pictureKey_) {
+    const GreyImage source =
+        scenes_ != nullptr
+            ? scenes_->sceneFor(room->getId(), room->sceneKind())
+            : makePlaceholder(room->sceneKind());
+    GreyImage fitted(cols, pictureRows);
+    for (int y = 0; y < pictureRows; ++y) {
+      for (int x = 0; x < cols; ++x) {
+        fitted.set(x, y, source.get(x * source.width() / cols,
+                                    y * source.height() / pictureRows));
+      }
+    }
+    out = "\033[0m\033[2J\033[H" +
+          renderScene(fitted, state_.getDay(),
+                      plain_ ? ColourMode::Plain : ColourMode::Grey);
+    pictureKey_ = key;
+  }
+  const std::string::size_type width =
+      static_cast<std::string::size_type>(cols - 1);
+  std::vector<std::string> lines = wrap(room->describe(), width);
+  if (!message_.empty()) {
+    const std::vector<std::string> extra = wrap(message_, width);
+    lines.insert(lines.end(), extra.begin(), extra.end());
+  }
+  out += moveTo(pictureRows + 1) +
+         (upper(room->getName()) + "   " + clock_.format()).substr(0, width);
+  const int textRows = kInsideTextRows - 2;
+  const int skip = std::max(0, static_cast<int>(lines.size()) - textRows);
+  for (int i = 0; i < textRows; ++i) {
+    out += moveTo(pictureRows + 2 + i);
+    const int at = skip + i;
+    if (at < static_cast<int>(lines.size())) {
+      out += lines[at].substr(0, width);
+    }
+  }
+  out += moveTo(rows) + ("> " + input_ + "_").substr(0, width);
+  screen_.write(out);
+}
 
 void ExteriorGame::walk(double direction) {
   if (camera_.step(map_, direction * kWalkStep * horse_.speedFactor())) {

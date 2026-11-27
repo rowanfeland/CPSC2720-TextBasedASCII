@@ -64,6 +64,23 @@ TEST(TerminalPainterTest, PlainNoEscapes) {
   EXPECT_EQ(" @@\n@@@\n", out);
 }
 
+TEST(TerminalPainterTest, RepeatedColoursNotResent) {
+  FrameBuffer fb(6, 2);
+  fb.fill(Rgb(10, 20, 30));
+  const std::string out = TerminalPainter::paintFull(fb, 1);
+  EXPECT_EQ(6, count(out, kHalfBlock));
+  EXPECT_EQ(1, count(out, "\033[38;2;"));
+  EXPECT_EQ(1, count(out, "\033[48;2;"));
+}
+
+TEST(TerminalPainterTest, ColourResentAfterCursorMove) {
+  FrameBuffer a(6, 4);
+  FrameBuffer b(6, 4);
+  b.fill(Rgb(10, 20, 30));
+  const std::string out = TerminalPainter::paintDiff(a, b, 1);
+  EXPECT_EQ(2, count(out, "\033[38;2;"));  // once per cell row
+}
+
 TEST(TerminalPainterTest, OddHeightPads) {
   FrameBuffer fb(1, 3);
   const std::string out = TerminalPainter::paintFull(fb, 1);

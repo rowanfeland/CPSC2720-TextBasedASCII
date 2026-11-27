@@ -11,7 +11,10 @@
 #include "IKeyInput.hpp"
 #include "IScreen.hpp"
 #include "Key.hpp"
+#include "LockedRoom.hpp"
 #include "Player.hpp"
+#include "Room.hpp"
+#include "SceneKind.hpp"
 #include "World.hpp"
 #include "WorldBuilder.hpp"
 #include "WorldFiles.hpp"
@@ -274,6 +277,110 @@ TEST(ExteriorGameTest, WaitingPastMidnightAdvancesDay) {
   ExteriorGame* g = h.play(keys);
   EXPECT_EQ("00:30", g->clock().format());
   EXPECT_EQ(2, h.state.getDay());
+}
+
+namespace {
+
+/** Rides west to the sheriff's door, then faces it (north). */
+std::vector<Key> rideToSheriff() {
+  std::vector<Key> keys = repeat(KeyType::Up, 33);   // riding: x 60.5 -> 27.5
+  keys = join(keys, repeat(KeyType::Right, 6));       // west -> north
+  return join(keys, repeat(KeyType::Up, 2));          // y 17.5 -> 15.5
+}
+
+}  // namespace
+
+TEST(ExteriorGameTest, EnterNeedsADoor) {
+  Harness h;
+  ExteriorGame* g = h.play(join(typed("dismount"), typed("enter")));
+  EXPECT_EQ("There's no door here.", g->lastMessage());
+  EXPECT_FALSE(g->isInside());
+}
+
+TEST(ExteriorGameTest, EnterOnHorsebackRefused) {
+  Harness h;
+  ExteriorGame* g = h.play(join(rideToSheriff(), typed("enter")));
+  EXPECT_EQ("Dismount first.", g->lastMessage());
+  EXPECT_FALSE(g->isInside());
+}
+
+TEST(ExteriorGameTest, EnterAndMoveInside) {
+  Harness h;
+  std::vector<Key> keys = join(rideToSheriff(), typed("dismount"));
+  keys = join(keys, typed("enter sheriff"));
+  ExteriorGame* g = h.play(keys);
+  EXPECT_TRUE(g->isInside());
+  EXPECT_EQ("sheriffs_office", h.player.getCurrentRoom()->getId());
+  EXPECT_NE(std::string::npos, h.screen.all().find("SHERIFF'S OFFICE"));
+
+  Harness deeper;
+  keys = join(rideToSheriff(), typed("dismount"));
+  keys = join(keys, typed("enter"));
+  keys = join(keys, typed("north"));
+  deeper.play(keys);
+  EXPECT_EQ("evidence_room", deeper.player.getCurrentRoom()->getId());
+}
+
+TEST(ExteriorGameTest, WrongPlaceNamed) {
+  Harness h;
+  std::vector<Key> keys = join(rideToSheriff(), typed("dismount"));
+  ExteriorGame* g = h.play(join(keys, typed("enter saloon")));
+  EXPECT_EQ("You're not at the saloon.", g->lastMessage());
+}
+
+TEST(ExteriorGameTest, LeaveReturnsOutsideFacingAway) {
+  Harness h;
+  std::vector<Key> keys = join(rideToSheriff(), typed("dismount"));
+  keys = join(keys, typed("enter"));
+  keys = join(keys, typed("north"));
+  keys = join(keys, typed("leave"));
+  ExteriorGame* g = h.play(keys);
+  EXPECT_FALSE(g->isInside());
+  EXPECT_EQ("main_street", h.player.getCurrentRoom()->getId());
+  EXPECT_NEAR(27.5, g->camera().x(), 1e-6);
+  EXPECT_NEAR(15.5, g->camera().y(), 1e-6);
+  EXPECT_GT(g->camera().dirY(), 0.99);  // facing south, away from the door
+}
+
+TEST(ExteriorGameTest, ArrowsInsideExplainLeave) {
+  Harness h;
+  std::vector<Key> keys = join(rideToSheriff(), typed("dismount"));
+  keys = join(keys, typed("enter"));
+  keys.push_back(Key(KeyType::Up));
+  ExteriorGame* g = h.play(keys);
+  EXPECT_TRUE(g->isInside());
+  EXPECT_EQ("You're indoors. Type leave to go back outside.", g->lastMessage());
+}
+
+TEST(ExteriorGameTest, InsideLookAndTake) {
+  Harness h;
+  std::vector<Key> keys = join(rideToSheriff(), typed("dismount"));
+  keys = join(keys, typed("enter"));
+  keys = join(keys, typed("look"));
+  ExteriorGame* g = h.play(keys);
+  EXPECT_NE(std::string::npos, g->lastMessage().find("wanted board"));
+}
+
+TEST(ExteriorGameTest, LockedDoorStaysShut) {
+  WorldMap map;
+  std::ostringstream warn;
+  parseTownMap("......\n.aaa..\n..@...\n", map);
+  parseBuildings("a vault \"VAULT\" 1.2 planks 1,1,1 2,2,2 2,2 S evidence_room\n",
+                 map, warn);
+  World world;
+  Room* vault = world.addRoom(std::unique_ptr<Room>(new LockedRoom(
+      "evidence_room", "Evidence Room", "Files.", SceneKind::Indoor, "iron_key")));
+  world.setStartRoom(vault);
+  CommandRegistry registry;
+  CommandRegistry::registerDefaults(registry);
+  GameState state;
+  Player player(vault, 6);
+  FakeKeys keys(join(typed("dismount"), typed("enter")));
+  FakeScreen screen(100, 30);
+  ExteriorGame g(map, world, player, state, registry, keys, screen, false);
+  g.run();
+  EXPECT_EQ("The door is locked. You need a key.", g.lastMessage());
+  EXPECT_FALSE(g.isInside());
 }
 
 TEST(ExteriorGameTest, LongInputIsCapped) {
