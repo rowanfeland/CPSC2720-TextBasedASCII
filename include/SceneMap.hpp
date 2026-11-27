@@ -39,7 +39,7 @@ class SceneMap {
   /** @brief Character drawn on open ground. */
   char ground() const;
 
-  /** @brief Adds a building. Its footprint blocks movement except at its door. */
+  /** @brief Adds a building; its footprint blocks all but its door. */
   void addBuilding(const Building& building);
 
   /** @brief Every building, in the order added. */

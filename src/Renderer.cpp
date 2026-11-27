@@ -25,7 +25,7 @@ Renderer::Renderer(const AsciiArtLibrary& art, Viewport& viewport)
 
 void Renderer::drawBuilding(Canvas& world, const Building& building) const {
   const Rect& r = building.footprint;
-  if (art_.hasArt(building.id)) {
+  if (art_.hasArt(building.id) && !art_.getArt(building.id).empty()) {
     Canvas sprite(r.width, r.height);
     sprite.blit(0, 0, art_.getArt(building.id));
     world.blit(r.x, r.y, sprite.toString());

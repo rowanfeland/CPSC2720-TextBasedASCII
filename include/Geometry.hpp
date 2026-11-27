@@ -25,7 +25,7 @@ struct Point {
 };
 
 /**
- * @brief An axis-aligned rectangle of cells, from (x, y) spanning width by height.
+ * @brief An axis-aligned rectangle of cells: (x, y) is the top-left cell.
  */
 struct Rect {
   int x;       ///< Left column.

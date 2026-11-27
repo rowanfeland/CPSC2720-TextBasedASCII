@@ -12,7 +12,7 @@
  */
 class Viewport {
  public:
-  /** @brief Creates a viewport of the given size in cells, at the map origin. */
+  /** @brief Creates a viewport of the given size, at the map origin. */
   Viewport(int width, int height);
 
   /** @brief Columns shown. */

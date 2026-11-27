@@ -80,12 +80,24 @@ TEST(RendererTest, ArtClippedToFootprint) {
   EXPECT_EQ("            ", out[3]);
 }
 
+TEST(RendererTest, EmptyArtFallsBackToBox) {
+  AsciiArtLibrary art;
+  art.addArt("shed", "");
+  Viewport vp(12, 6);
+  Renderer r(art, vp);
+  std::vector<std::string> out =
+      lines(r.renderFrame(shedMap(), std::vector<Entity>(), Point(0, 0), ""));
+  EXPECT_EQ(" +----+     ", out[0]);
+  EXPECT_EQ(" |SHED|     ", out[1]);
+}
+
 TEST(RendererTest, StatusLineLastAndTruncated) {
   AsciiArtLibrary art;
   Viewport vp(6, 2);
   Renderer r(art, vp);
   std::vector<std::string> out = lines(
-      r.renderFrame(shedMap(), std::vector<Entity>(), Point(0, 0), "Main Street"));
+      r.renderFrame(shedMap(), std::vector<Entity>(), Point(0, 0),
+                    "Main Street"));
   ASSERT_EQ(3u, out.size());
   EXPECT_EQ("Main S", out[2]);
 }
