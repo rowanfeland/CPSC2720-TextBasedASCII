@@ -1,0 +1,23 @@
+# Props: one per line.  sprite_name x y blocking(yes/no)
+# x and y are in tiles and may have decimals. The sprite is data/world/sprites/<name>.txt
+headstone 26.0 23.0 yes
+cross 27.5 24.2 yes
+headstone 30.5 23.2 yes
+cross 32.0 25.5 yes
+headstone 33.2 26.6 yes
+cross 25.8 26.4 yes
+headstone 28.6 26.8 yes
+hitching_post 13.0 16.4 yes
+trough 20.0 16.4 yes
+barrel 10.4 15.5 yes
+barrel 23.5 15.4 yes
+barrel 30.4 15.5 yes
+wagon 36.5 21.6 yes
+cactus 44.0 12.0 yes
+cactus 50.5 23.5 yes
+cactus 56.0 10.5 yes
+cactus 47.0 26.0 yes
+cactus 61.5 22.5 yes
+cactus 41.0 9.5 yes
+cactus 3.5 27.0 yes
+cactus 12.5 27.5 yes

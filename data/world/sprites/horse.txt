@@ -1,0 +1,21 @@
+# Your horse, side view. First line: size in tiles (width height).
+# Then colours (letter = red green blue), then rows of pixels. '.' is see-through.
+size 2.0 1.25
+B = 122 74 40
+K = 52 32 20
+M = 30 22 18
+W = 238 232 220
+S = 150 36 30
+..MM..................
+.KBBM.................
+KBBBBM................
+WBBBBBM...............
+.BB.BBBBBSSSBBBBBB....
+....BBBBBSSSBBBBBBBK..
+....BBBBBBBBBBBBBBBKK.
+....BBBBBBBBBBBBBBB..K
+....BBBBBBBBBBBBBBB..K
+.....BB.B.......B.BB..
+.....B..B.......B..B..
+.....B..B.......B..B..
+.....K..K.......K..K..

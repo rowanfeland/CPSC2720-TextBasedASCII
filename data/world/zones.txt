@@ -1,0 +1,7 @@
+# Zones: one per line. The first zone that contains a tile wins.
+# room_id x0 y0 x1 y1 description shown by "look"
+the_line 0 35 63 39 Past this point there is no sand, no sky, only a flat white.
+soda_lake 0 29 63 34 A flat white expanse of dried lake. Your boots crunch on salt.
+graveyard 24 21 35 28 Wooden crosses lean in the dry grass. Some of the graves are fresh.
+desert_road 38 0 63 28 A rutted road runs east into the desert, and back toward town.
+main_street 0 0 37 28 Main Street runs east to west past false fronts. Dust hangs in the still air.

@@ -1,0 +1,8 @@
+size 1.4 0.6
+W = 104 72 44
+WWWWWWWWWWWWWW
+WWWWWWWWWWWWWW
+.WW........WW.
+.WW........WW.
+.WW........WW.
+.WW........WW.
