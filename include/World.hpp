@@ -31,8 +31,8 @@ class World {
    * @brief Links two rooms in both directions: aExit leads from a to b,
    * bExit leads from b to a.
    */
-  void connect(Room* a, const std::string& aExit, Room* b,
-               const std::string& bExit);
+  static void connect(Room* a, const std::string& aExit, Room* b,
+                      const std::string& bExit);
 
   /** @brief Sets where the player begins. */
   void setStartRoom(Room* room);

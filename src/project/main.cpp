@@ -1,73 +1,52 @@
 /**
  * @file main.cpp
- * @brief Entry point for The Line: walk Main Street in placeholder boxes.
+ * @brief Entry point for The Line.
+ *
+ * Usage (run from the repo root):  ./playGame [--plain]
+ *   --plain  print density characters instead of grey pixels (no colour codes)
  */
-#include <string>
-#include <vector>
+#include <cstring>
+#include <memory>
 
-#include "AsciiArtLibrary.hpp"
+#include "CommandRegistry.hpp"
 #include "ConsoleDisplay.hpp"
 #include "ConsoleInput.hpp"
-#include "Entity.hpp"
-#include "Movement.hpp"
-#include "Renderer.hpp"
-#include "SceneMap.hpp"
-#include "TownLayout.hpp"
-#include "Viewport.hpp"
+#include "Game.hpp"
+#include "GameState.hpp"
+#include "Player.hpp"
+#include "SceneLibrary.hpp"
+#include "SceneRenderer.hpp"
+#include "World.hpp"
+#include "WorldBuilder.hpp"
 
 namespace {
 
-const int kViewWidth = 80;
-const int kViewHeight = 13;
-const char kPlayerGlyph = '@';
 const char kArtFolder[] = "data/art";
-
-std::string statusFor(const SceneMap& map, const Point& pos) {
-  const Building* door = map.buildingAtDoor(pos);
-  if (door != nullptr) {
-    return door->label + " (closed for now)";
-  }
-  return map.name() + " | Day 1 | n/s/e/w to move, quit to leave";
-}
+const int kCarryCapacity = 6;
 
 }  // namespace
 
-int main() {
-  AsciiArtLibrary art;
-  art.loadFromDirectory(kArtFolder);  // No art yet: buildings draw as boxes.
+int main(int argc, char** argv) {
+  bool plain = false;
+  for (int i = 1; i < argc; ++i) {
+    if (std::strcmp(argv[i], "--plain") == 0) {
+      plain = true;
+    }
+  }
 
-  const SceneMap map = TownLayout::buildMainStreet();
-  Viewport viewport(kViewWidth, kViewHeight);
-  Renderer renderer(art, viewport);
+  SceneLibrary scenes;
+  scenes.loadFromDirectory(kArtFolder);  // Missing art falls back to placeholders.
+
+  std::unique_ptr<World> world = WorldBuilder::build();
+  CommandRegistry registry;
+  CommandRegistry::registerDefaults(registry);
+  GameState state;
+  Player player(world->getStartRoom(), kCarryCapacity);
   ConsoleDisplay display;
   ConsoleInput input;
 
-  Point player = TownLayout::startPosition();
-  std::string message = "You ride into town from the east.";
-
-  while (true) {
-    std::vector<Entity> entities;
-    entities.push_back(Entity("player", player, kPlayerGlyph));
-
-    display.clear();
-    display.showArt(
-        renderer.renderFrame(map, entities, player, statusFor(map, player)));
-    display.show(message);
-    display.show("> ");
-
-    const std::string line = input.readLine();
-    if (line == "quit" || line == "q") {
-      display.show("You turn your horse around.");
-      break;
-    }
-    const Direction direction = parseDirection(line);
-    if (direction == Direction::None) {
-      message = "Unknown command. Try n, s, e, w or quit.";
-    } else if (tryMove(map, player, direction)) {
-      message = "";
-    } else {
-      message = "You can't go that way.";
-    }
-  }
+  Game game(*world, player, state, registry, scenes, display, input,
+            plain ? ColourMode::Plain : ColourMode::Grey);
+  game.run();
   return 0;
 }

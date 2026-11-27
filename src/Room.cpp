@@ -1,5 +1,6 @@
 #include "Room.hpp"
 
+#include <algorithm>
 #include <memory>
 #include <string>
 #include <utility>
@@ -27,13 +28,10 @@ void Room::setExit(const std::string& name, Room* to) {
 
 Room* Room::getExit(const std::string& name) const {
   const std::string key = normalize(name);
-  for (std::vector<std::pair<std::string, Room*>>::const_iterator it = exits_.begin();
-       it != exits_.end(); ++it) {
-    if (it->first == key) {
-      return it->second;
-    }
-  }
-  return nullptr;
+  std::vector<std::pair<std::string, Room*>>::const_iterator it = std::find_if(
+      exits_.begin(), exits_.end(),
+      [&key](const std::pair<std::string, Room*>& exit) { return exit.first == key; });
+  return it == exits_.end() ? nullptr : it->second;
 }
 
 std::vector<std::string> Room::exitNames() const {
@@ -50,25 +48,22 @@ void Room::addItem(std::unique_ptr<Item> item) {
 }
 
 std::unique_ptr<Item> Room::removeItem(const std::string& word) {
-  for (std::vector<std::unique_ptr<Item>>::iterator it = items_.begin();
-       it != items_.end(); ++it) {
-    if ((*it)->matches(word)) {
-      std::unique_ptr<Item> out = std::move(*it);
-      items_.erase(it);
-      return out;
-    }
+  std::vector<std::unique_ptr<Item>>::iterator it = std::find_if(
+      items_.begin(), items_.end(),
+      [&word](const std::unique_ptr<Item>& item) { return item->matches(word); });
+  if (it == items_.end()) {
+    return nullptr;
   }
-  return nullptr;
+  std::unique_ptr<Item> out = std::move(*it);
+  items_.erase(it);
+  return out;
 }
 
 const Item* Room::findItem(const std::string& word) const {
-  for (std::vector<std::unique_ptr<Item>>::const_iterator it = items_.begin();
-       it != items_.end(); ++it) {
-    if ((*it)->matches(word)) {
-      return it->get();
-    }
-  }
-  return nullptr;
+  std::vector<std::unique_ptr<Item>>::const_iterator it = std::find_if(
+      items_.begin(), items_.end(),
+      [&word](const std::unique_ptr<Item>& item) { return item->matches(word); });
+  return it == items_.end() ? nullptr : it->get();
 }
 
 bool Room::itemsVisible() const { return true; }

@@ -21,7 +21,7 @@ std::string GoCommand::execute(const ParsedCommand& cmd, Player& player, GameSta
   if (cmd.noun.empty()) {
     return "Go where?";
   }
-  Room* here = player.getCurrentRoom();
+  const Room* here = player.getCurrentRoom();
   Room* next = here->getExit(cmd.noun);
   if (next == nullptr) {
     return here->noExitMessage(cmd.noun);
@@ -40,7 +40,7 @@ std::string GoCommand::getHelp() const {
 
 std::string LookCommand::execute(const ParsedCommand& cmd, Player& player, GameState& state) {
   (void)state;
-  Room* here = player.getCurrentRoom();
+  const Room* here = player.getCurrentRoom();
   if (cmd.noun.empty()) {
     return here->describe();
   }

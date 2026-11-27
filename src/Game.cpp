@@ -68,7 +68,7 @@ bool Game::processTurn(const std::string& line) {
 const std::string& Game::lastMessage() const { return lastMessage_; }
 
 void Game::showScreen() {
-  Room* room = player_.getCurrentRoom();
+  const Room* room = player_.getCurrentRoom();
   display_.clear();
   display_.showArt(renderScene(scenes_.sceneFor(room->getId(), room->sceneKind()),
                                state_.getDay(), mode_));

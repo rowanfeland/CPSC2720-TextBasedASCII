@@ -1,5 +1,6 @@
 #include "Pgm.hpp"
 
+#include <algorithm>
 #include <cctype>
 #include <fstream>
 #include <sstream>
@@ -20,15 +21,17 @@ bool nextToken(std::istream& in, std::string& token) {
   return false;
 }
 
+bool isAllDigits(const std::string& token) {
+  return !token.empty() &&
+         std::find_if(token.begin(), token.end(), [](char c) {
+           return !std::isdigit(static_cast<unsigned char>(c));
+         }) == token.end();
+}
+
 bool nextInt(std::istream& in, int& value) {
   std::string token;
-  if (!nextToken(in, token)) {
+  if (!nextToken(in, token) || !isAllDigits(token)) {
     return false;
-  }
-  for (std::string::size_type i = 0; i < token.size(); ++i) {
-    if (!std::isdigit(static_cast<unsigned char>(token[i]))) {
-      return false;
-    }
   }
   std::istringstream digits(token);
   return static_cast<bool>(digits >> value);

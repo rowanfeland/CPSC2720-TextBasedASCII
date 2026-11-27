@@ -12,10 +12,10 @@ World::World() : start_(nullptr) {}
 World::~World() {}
 
 Room* World::addRoom(std::unique_ptr<Room> room) {
-  Room* raw = room.get();
-  byId_[raw->getId()] = raw;
   rooms_.push_back(std::move(room));
-  return raw;
+  Room* stored = rooms_.back().get();
+  byId_[stored->getId()] = stored;
+  return stored;
 }
 
 Room* World::getRoom(const std::string& id) const {
