@@ -59,8 +59,6 @@ class Camera {
   bool step(const WorldMap& map, double distance);
 
  private:
-  bool fits(const WorldMap& map, double x, double y) const;
-
   double x_;
   double y_;
   double angle_;

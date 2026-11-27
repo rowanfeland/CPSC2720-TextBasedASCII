@@ -308,12 +308,9 @@ std::string ExteriorGame::leaveBuilding() {
 }
 
 bool ExteriorGame::isOutdoorRoom(const Room* room) const {
-  for (const Zone& z : map_.zones()) {
-    if (room != nullptr && z.roomId == room->getId()) {
-      return true;
-    }
-  }
-  return false;
+  return room != nullptr &&
+         std::any_of(map_.zones().begin(), map_.zones().end(),
+                     [room](const Zone& z) { return z.roomId == room->getId(); });
 }
 
 std::string ExteriorGame::runInside(const std::string& typed) {

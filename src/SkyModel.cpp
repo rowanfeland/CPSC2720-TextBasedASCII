@@ -48,10 +48,10 @@ bool toMinute(const std::string& s, int& out) {
   if (s.size() != 5 || s[2] != ':') {
     return false;
   }
-  for (int i : {0, 1, 3, 4}) {
-    if (s[i] < '0' || s[i] > '9') {
-      return false;
-    }
+  const int digits[] = {0, 1, 3, 4};
+  if (!std::all_of(std::begin(digits), std::end(digits),
+                   [&s](int i) { return s[i] >= '0' && s[i] <= '9'; })) {
+    return false;
   }
   const int h = (s[0] - '0') * 10 + (s[1] - '0');
   const int m = (s[3] - '0') * 10 + (s[4] - '0');

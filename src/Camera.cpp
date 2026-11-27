@@ -11,6 +11,14 @@ const double kFieldOfView = 0.66;  // camera plane length; about 66 degrees
 const double kRadius = 0.2;        // space kept clear around the player
 const double kMinMove = 1e-6;      // smaller moves are rounding, not steps
 
+/** True if a player centred at (x, y) has room to stand there. */
+bool fits(const WorldMap& map, double x, double y) {
+  return !map.isBlocked(x - kRadius, y - kRadius) &&
+         !map.isBlocked(x + kRadius, y - kRadius) &&
+         !map.isBlocked(x - kRadius, y + kRadius) &&
+         !map.isBlocked(x + kRadius, y + kRadius);
+}
+
 }  // namespace
 
 Camera::Camera(double x, double y, double angle) : x_(x), y_(y), angle_(0) {
@@ -43,13 +51,6 @@ void Camera::setAngle(double radians) {
 void Camera::setPosition(double x, double y) {
   x_ = x;
   y_ = y;
-}
-
-bool Camera::fits(const WorldMap& map, double x, double y) const {
-  return !map.isBlocked(x - kRadius, y - kRadius) &&
-         !map.isBlocked(x + kRadius, y - kRadius) &&
-         !map.isBlocked(x - kRadius, y + kRadius) &&
-         !map.isBlocked(x + kRadius, y + kRadius);
 }
 
 bool Camera::step(const WorldMap& map, double distance) {
