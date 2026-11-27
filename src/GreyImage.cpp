@@ -15,6 +15,8 @@ GreyImage::GreyImage(int width, int height, int fill)
       pixels_(static_cast<std::vector<int>::size_type>(width_) * height_,
               clampGrey(fill)) {}
 
+GreyImage::GreyImage() : GreyImage(0, 0) {}
+
 int GreyImage::width() const { return width_; }
 
 int GreyImage::height() const { return height_; }

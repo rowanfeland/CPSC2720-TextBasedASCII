@@ -23,6 +23,9 @@ class GreyImage {
    */
   explicit GreyImage(int width, int height, int fill = 0);
 
+  /** @brief Creates an empty (0 x 0) image. */
+  GreyImage();
+
   /** @brief Number of columns. */
   int width() const;
 
